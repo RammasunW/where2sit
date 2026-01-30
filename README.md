@@ -7,7 +7,7 @@ Don't know where to go when you have an online class? The quiet floor in the lib
 Currently we don't have a centralized system to view room availability. This tracker is a web-based application that provides faculty, student, and clubs with clear overview of room availability at a specific time. By leveraging class data and room assignments, the system helps individuals and organizations find open spaces for studying or meetings, making sure everyone gets a pleasant environment.
 
 ## Description
-where2sit is designed to make campus space usage more visible and flexible. It maintains a database of reserved rooms with scheduled classes and other events. It provides accurate, up-to-date availability information based on verified user input. Users can search for rooms by time, location, capacity, and available resources (e.g. number of blackboards) to find an unoccupied room that best fits their need. Users can rate and leave comments on a room. They can also report issues (e.g. projector is not working) and relevant staff will be notified.
+where2sit is designed to make campus space usage more visible and flexible. It maintains a database of reserved rooms with scheduled classes and other events. It provides accurate, up-to-date availability information based on verified user input. Users can search for rooms by time, location, capacity, and available resources (e.g. number of blackboards) to find an unoccupied room that best fits their need. Users can rate and leave comments on a room. They can also report issues (e.g. projector is not working) and relevant staff will be notified. In case of emergency, this program provides the fastest evacuation route.
 
 Users can request room usage and it will be processed by authorized members. They will be notified if there is a change to their assigned room. Authorized members (such as staff) can manage room data and scheduled events, ensuring all information is accurate.
 
@@ -18,6 +18,7 @@ Users can request room usage and it will be processed by authorized members. The
 
 ## Features
 * View room availability by date and time
+* View directions to and evacuation routes of rooms
 * Filter rooms by building, capacity, available resources, ratings, and more
 * Display scheduled classes and other reserved time slots
 * Administrative interface for mananging rooms
