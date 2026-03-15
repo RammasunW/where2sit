@@ -1,0 +1,11 @@
+[run]
+source = rooms
+
+omit =
+    */migrations/*
+    */tests/*
+    manage.py
+    wheretosit/*
+
+[report]
+show_missing = true
