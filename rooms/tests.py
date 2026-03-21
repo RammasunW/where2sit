@@ -134,29 +134,6 @@ class TestRoomListView:
        assert "1/202" in content
 
 
-@pytest.mark.django_db
-# similar to other tests above but still
-class TestRoomListIntegration:
-
-    def test_room_list_integration_success(self):
-        shepard = Building.objects.create(name="Shepard Hall")
-        Room.objects.create(building=shepard, number="18", capacity=25)
-        client = Client()
-        response = client.get("/")
-        content = response.content.decode()
-        assert response.status_code == 200
-        assert "Shepard Hall" in content
-        assert "18" in content
-        assert "25" in content
-
-    def test_room_list_integration_fail(self):
-        client = Client()
-        response = client.get("/") 
-        content = response.content.decode()
-        assert response.status_code == 200
-        assert "Room List" in content
-
-
 # =====================================================
 # SANITY TEST
 # =====================================================
