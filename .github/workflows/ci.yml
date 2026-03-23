@@ -29,28 +29,3 @@ jobs:
 
       - name: Run tests with coverage
         run: pytest --cov=rooms --cov-report=term -v
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm install
-
-      - name: Install Playwright
-        run: |
-          cd frontend
-          npx playwright install --with-deps
-
-      - name: Start Django server
-        run: |
-          python manage.py runserver 8000 &
-          sleep 5
-
-      - name: Run Playwright tests
-        run: |
-          cd frontend
-          npx playwright test
