@@ -27,6 +27,16 @@ class TestBuildingModel:
         name_field = Building._meta.get_field('name')
         assert name_field.max_length == 100
 
+    def test_building_empty_name(self):
+        """Building can be created with an empty name (no validation enforced)"""
+        building = Building.objects.create(name="")
+        assert building.name == ""
+
+    def test_building_duplicate_names_allowed(self):
+        """Multiple buildings can have the same name (no unique constraint)"""
+        Building.objects.create(name="NAC")
+        Building.objects.create(name="NAC")
+        assert Building.objects.filter(name="NAC").count() == 2
 
 @pytest.mark.django_db
 class TestRoomModel:
@@ -62,6 +72,36 @@ class TestRoomModel:
         building.delete()
         assert Room.objects.count() == 0
 
+    def test_room_number_max_length(self):
+        """Room number field has max_length of 10"""
+        number_field = Room._meta.get_field('number')
+        assert number_field.max_length == 10
+
+    def test_room_capacity_is_integer(self):
+        """Room capacity should store integer values correctly"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="101", capacity=0)
+        assert room.capacity == 0
+
+    def test_room_negative_capacity(self):
+        """Room model currently accepts negative capacity (no validation).
+        This test documents this behavior as a known gap."""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="101", capacity=-5)
+        # The model doesn't enforce positive capacity - it saves without error
+        assert room.capacity == -5
+
+    def test_room_without_building_raises_error(self):
+        """Creating a room without a building should raise an IntegrityError"""
+        from django.db import IntegrityError
+        with pytest.raises(IntegrityError):
+            Room.objects.create(building=None, number="101", capacity=30)
+
+    def test_room_str_with_special_characters(self):
+        """Room __str__ handles building names with special characters"""
+        building = Building.objects.create(name="O'Brien Hall")
+        room = Room.objects.create(building=building, number="2/105", capacity=20)
+        assert str(room) == "O'Brien Hall - 2/105"
 
 # =====================================================
 # VIEW TESTS - Testing the room_list view

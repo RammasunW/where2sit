@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  unit-and-integration-tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,5 +27,41 @@ jobs:
       - name: Run migrations
         run: python manage.py migrate
 
-      - name: Run tests with coverage
-        run: pytest --cov=rooms --cov-report=term -v
+      - name: Run unit and integration tests with coverage
+        run: |
+          pytest --cov=rooms --cov-report=term --cov-report=html -v --ignore=rooms/test_e2e.py
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Run migrations
+        run: python manage.py migrate
+
+      - name: Launch app and run E2E tests
+        run: |
+          python manage.py runserver 8000 --noreload &
+          sleep 5
+          pytest rooms/test_e2e.py -v
