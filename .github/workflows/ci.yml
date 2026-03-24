@@ -35,12 +35,13 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install Playwright
+      - name: Install Frontend & Playwright
+        working-directory: frontend
         run: |
-          cd frontend
           npm install
           npx playwright install --with-deps
 
       - name: Run E2E tests
+        working-directory: frontend
         run: |
           npx playwright test
