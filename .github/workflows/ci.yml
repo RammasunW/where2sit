@@ -48,5 +48,4 @@ jobs:
 
       - name: Run E2E tests
         run: |
-          python manage.py runserver --noreload &
           npx playwright test

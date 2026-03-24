@@ -133,9 +133,10 @@ class TestRoomListView:
         client = Client()
         response = client.get("/?building=Shepard Hall")
         content = response.content.decode()
-        assert "NAC" not in content
-        assert "Shepard Hall" in content
-        assert "Marshak" not in content
+        assert response.status_code == 200, "Expected code 200"
+        assert "NAC" not in content, "Doesn't expect NAC"
+        assert "Shepard Hall" in content, "Expected Shepard Hall"
+        assert "Marshak" not in content, "Doesn't expect Marshak"
 
     def test_room_list_filter_by_building_invalid_input(self):
         """Filter by a wrong building name, the response returns no rooms"""
@@ -152,10 +153,10 @@ class TestRoomListView:
         client = Client()
         response = client.get("/?building=Marsha")  # intentional typo
         content = response.content.decode()
-        assert response.status_code == 200
-        assert "NAC" not in content
-        assert "Shepard Hall" not in content
-        assert "Marshak" not in content
+        assert response.status_code == 200, "Expected code 200"
+        assert "NAC" not in content, "Doesn't expect NAC"
+        assert "Shepard Hall" not in content, "Doesn't expect Shepard Hall"
+        assert "Marshak" not in content, "Doesn't expect Marshak"
 
 
 @pytest.mark.django_db
@@ -175,12 +176,12 @@ class TestRoomIntegration:
         client = Client()
         response = client.get("/?building=Shepard Hall&min_capacity=50")
         content = response.content.decode()
-        assert response.status_code == 200
-        assert "NAC" not in content
-        assert "Shepard Hall" in content
-        assert "Marshak" not in content
-        assert "101" in content
-        assert "204" not in content
+        assert response.status_code == 200, "Expected code 200"
+        assert "NAC" not in content, "Doesn't expect NAC"
+        assert "Shepard Hall" in content, "Expected Shepard Hall"
+        assert "Marshak" not in content, "Doesnt expect Marshak"
+        assert "101" in content, "Expected Shepard Hall 101"
+        assert "204" not in content, "Doesn't expect Shepard Hall 204"
 
     def test_room_integration_fail(self):
         """Filter by a correct building name but an invalid capacity,
@@ -198,12 +199,12 @@ class TestRoomIntegration:
         client = Client()
         response = client.get("/?building=Shepard Hall&min_capacity=fifty")  # invalid capacity
         content = response.content.decode()
-        assert response.status_code == 200
-        assert "NAC" not in content
-        assert "Shepard Hall" in content
-        assert "Marshak" not in content
-        assert "101" in content
-        assert "204" in content
+        assert response.status_code == 200, "Expected code 200"
+        assert "NAC" not in content, "Doesn't expect NAC"
+        assert "Shepard Hall" in content, "Expected Shepard Hall"
+        assert "Marshak" not in content, "Doesn't expect Marshak"
+        assert "101" in content, "Expected Shepard Hall 101"
+        assert "204" in content, "Expected Shepard Hall 204"
 
 
 # =====================================================

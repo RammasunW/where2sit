@@ -7,6 +7,6 @@ export default defineConfig({
   webServer: {
     command: 'python manage.py runserver',
     url: 'http://127.0.0.1:8000',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
   },
 });
