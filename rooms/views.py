@@ -1,29 +1,25 @@
 from django.shortcuts import render
-from .models import Room
-
+from .models import Room, Building
 
 # Create your views here.
 
+def home(request):
+    featured_rooms = Room.objects.select_related('building').all()[:6]
+    buildings = Building.objects.all()
 
-#def room_list(request):
-#   rooms = Room.objects.all()
- #  return render(request, "rooms/room_list.html", {"rooms": rooms})
-
-
-
+    context = {
+        'featured_rooms': featured_rooms,
+        'buildings': buildings,
+    }
+    return render(request, "rooms/home.html", context)
 
 def room_list(request):
-   rooms = Room.objects.all()
-   min_capacity = request.GET.get("min_capacity")
+    rooms = Room.objects.all()
+    buildings = Building.objects.select_related('building').all()
 
+    context = {
+        'rooms': rooms,
+        'buildings': buildings,
+    }
 
-   if min_capacity:
-       try:
-           minimum = int(min_capacity)
-           rooms = rooms.filter(capacity__gte = minimum)
-       except ValueError:
-           pass
-
-
-   return render(request, "rooms/room_list.html", {"rooms": rooms})
-  
+    return render(request, "rooms/room_list.html", context)

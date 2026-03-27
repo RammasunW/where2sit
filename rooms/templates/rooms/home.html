@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="bg-linear-to-br from-primary to-purple-600 text-white">
+    <div class="container mx-auto px-4 py-20">
+        <div class="max-w-3xl mx-auto text-center">
+            <h1 class="text-5xl md:text-6xl font-bold mb-6">
+                Find Your Perfect Study Spot
+            </h1>
+            <p class="text-xl mb-8 text-blue-50">
+                Don't know where to go when you have an online class? The quiet floor is too loud? 
+                Too shy to sit next to strangers? We got you!
+            </p>
+            
+            <!-- Search Form -->
+            <div class="bg-white rounded-2xl shadow-xl p-4">
+                <form method="get" action="{% url 'rooms:room_list' %}" class="flex flex-col md:flex-row gap-3">
+                    <select name="building" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="">All Buildings</option>
+                        {% for building in buildings %}
+                            <option value="{{ building.id }}">{{ building.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="date" name="date" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <input type="time" name="time" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <button type="submit" class="btn-primary px-8 py-3 text-lg">
+                        Find Rooms →
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Why Choose where2sit?</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                We make finding the perfect study space simple and stress-free
+            </p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="card text-center">
+                <!--<div class="text-5xl mb-4">🔍</div>-->
+                <h3 class="text-2xl font-semibold mb-4">Real-time Availability</h3>
+                <p class="text-gray-600">See which rooms are free right now based on class schedules and bookings.</p>
+            </div>
+            
+            <div class="card text-center">
+                <!--<div class="text-5xl mb-4">🎯</div>-->
+                <h3 class="text-xl font-semibold mb-4">Smart Filters</h3>
+                <p class="text-gray-600">Filter by capacity, resources, building, and more to find your ideal spot.</p>
+            </div>
+            
+            <div class="card text-center">
+                <!--<div class="text-5xl mb-4">⭐</div>-->
+                <h3 class="text-xl font-semibold mb-4">Community Ratings</h3>
+                <p class="text-gray-600">See what others think about rooms and share your own experiences.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Featured Rooms Section -->
+{% if featured_rooms %}
+<section class="py-16 bg-gray-50">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-4">Featured Rooms</h2>
+            <p class="text-gray-600">Popular study spots on campus</p>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-6">
+            {% for room in featured_rooms %}
+            <div class="card hover:transform hover:scale-105 transition duration-300">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">{{ room.building }} {{ room.number }}</h3>
+                        <p class="text-gray-500 text-sm">Capacity: {{ room.capacity }} people</p>
+                    </div>
+                    <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Available</span>
+                </div>
+                <div class="flex items-center text-gray-600 text-sm mb-3">
+                    <span class="mr-3">📍 {{ room.building.name }}</span>
+                    <span>🪑 {{ room.capacity }} seats</span>
+                </div>
+                <div class="flex gap-2 mt-2">
+                    {% if room.has_projector %}<span class="text-xs bg-gray-100 px-2 py-1 rounded">Projector</span>{% endif %}
+                    {% if room.has_blackboard %}<span class="text-xs bg-gray-100 px-2 py-1 rounded">Blackboard</span>{% endif %}
+                    {% if room.has_ac %}<span class="text-xs bg-gray-100 px-2 py-1 rounded">AC</span>{% endif %}
+                </div>
+                <a href="#" class="mt-4 inline-block text-primary hover:text-blue-700 text-sm font-medium">
+                    View Details →
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- CTA Section -->
+<section class="bg-primary py-16">
+    <div class="container mx-auto px-4 text-center text-white">
+        <h2 class="text-3xl font-bold mb-4">Ready to Find Your Perfect Spot?</h2>
+        <p class="text-blue-100 mb-8 max-w-2xl mx-auto">
+            Join students in discovering their ideal study spaces on campus.
+        </p>
+        <a href="{% url 'rooms:room_list' %}" class="bg-white text-primary px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition inline-block">
+            Explore All Rooms
+        </a>
+    </div>
+</section>
+{% endblock %}
