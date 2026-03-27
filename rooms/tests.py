@@ -80,8 +80,14 @@ class TestRoomListView:
     def test_room_list_uses_correct_template(self):
         """The room list view should use rooms/room_list.html"""
         client = Client()
-        response = client.get("/")
+        response = client.get("/rooms/")
         assert "rooms/room_list.html" in [t.name for t in response.templates]
+
+    def test_home_uses_correct_template(self):
+        """The home view should use rooms/home.html"""
+        client = Client()
+        response = client.get("/")
+        assert "rooms/home.html" in [t.name for t in response.templates]
 
     def test_room_list_displays_rooms(self):
         """Rooms in the database should appear in the response"""
