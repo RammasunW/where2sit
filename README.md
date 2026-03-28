@@ -51,7 +51,7 @@ Clearer Setup:
 git clone repo
 cd where2sit
 
-python -m venv venv
+python -m venv venv # Only if virtual environment not already set up.
 source venv/bin/activate
 
 pip install -r requirements.txt

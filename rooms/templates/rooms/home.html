@@ -20,7 +20,7 @@
                     <select name="building" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
                         <option value="">All Buildings</option>
                         {% for building in buildings %}
-                            <option value="{{ building.id }}">{{ building.name }}</option>
+                            <option value="{{ building.id }}">{{ building.name }}</option> <!--Check if name is right...-->
                         {% endfor %}
                     </select>
                     <input type="date" name="date" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
