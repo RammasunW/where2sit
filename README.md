@@ -60,6 +60,8 @@ source venv/bin/activate (Unix)
 
 pip install -r requirements.txt
 
+python manage.py makemigrations
+
 python manage.py migrate
 
 (python manage.py tailwind start) #In separate Teminal/If making frontend changes
