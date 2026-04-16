@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
 from .models import Room, Building
 
 # Create your views here.
@@ -36,26 +37,39 @@ def room_list(request):
 
 
 # User account
-def signup(request):
+'''def signin(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             form.save()
-            return redirect('login')
+            return redirect('signin')
     else:
         form = UserCreationForm()
-    return render(request, 'registration/signup.html', {'form': form})
+    return render(request, 'registration/login.html', {'form': form})'''
+
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('/')
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'registration/register.html', {'form': form})
 
 
 # Reservation view (no login required)
 
-from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.shortcuts import redirect
 from .models import Reservation
 
 
-@csrf_exempt
+@login_required
 def reservation(request):
     rooms = Room.objects.select_related('building').all()
     success = False
@@ -71,27 +85,24 @@ def reservation(request):
         date = request.POST.get('date')
         time_ = request.POST.get('time')
         duration = request.POST.get('duration')
-        name = request.POST.get('name')
         if not (room_id and date and time_ and duration):
             error = 'Please fill in all required fields.'
         else:
             try:
                 reservation = Reservation.objects.create(
-                    name=name,
+                    user=request.user,
                     room_id=room_id,
                     date=date,
                     time=time_,
                     duration=duration,
                 )
-                user_reservations = request.session.get('my_reservations', [])
-                user_reservations.append(reservation.id)
-                request.session['my_reservations'] = user_reservations
                 success = True
             except Exception as e:
                 error = f"Reservation failed: {e}"
 
-    my_reservation_ids = request.session.get('my_reservations', [])
-    my_reservations = Reservation.objects.filter(id__in=my_reservation_ids).order_by('-created_at') if my_reservation_ids else []
+    my_reservations = Reservation.objects.filter(
+        user=request.user
+    ).order_by('-created_at')
 
     context = {
         'rooms': rooms,
