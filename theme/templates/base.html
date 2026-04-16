@@ -148,7 +148,7 @@ a.button-link:hover {
                     <a href="{% url 'rooms:room_list' %}" class="text-gray-600 hover:text-primary transition">Rooms</a>
                     <a href="{% url 'rooms:reservation' %}" class="text-gray-600 hover:text-primary transition">Reservation</a>
                     <a href="{% url 'rooms:bookings' %}" class="button-link">My Bookings</a>
-                    
+
                     <!-- User authentication -->
                     {% if user.is_authenticated %}
                       <p>Welcome, {{ user.username }}</p>
