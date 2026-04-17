@@ -12,6 +12,7 @@ class Room(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE)
     number = models.CharField(max_length=10)
     capacity = models.IntegerField()
+    favorites = models.ManyToManyField(User, related_name='favorite_rooms', blank=True)
 
     def __str__(self):
         return f"{self.building} - {self.number}"

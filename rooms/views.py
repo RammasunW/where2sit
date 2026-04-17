@@ -1,7 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from .models import Room, Building
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 # Create your views here.
 
@@ -36,17 +38,7 @@ def room_list(request):
     return render(request, "rooms/room_list.html", context)
 
 
-# User account
-'''def signin(request):
-    if request.method == 'POST':
-        form = UserCreationForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect('signin')
-    else:
-        form = UserCreationForm()
-    return render(request, 'registration/login.html', {'form': form})'''
-
+# User authentication
 
 def register(request):
     if request.method == 'POST':
@@ -74,11 +66,6 @@ def reservation(request):
     rooms = Room.objects.select_related('building').all()
     success = False
     error = None
-    # Use session to identify user (no login required)
-    session_key = request.session.session_key
-    if not session_key:
-        request.session.create()
-        session_key = request.session.session_key
 
     if request.method == 'POST':
         room_id = request.POST.get('room')
@@ -113,6 +100,7 @@ def reservation(request):
     return render(request, "rooms/reservation.html", context)
 
 
+# View reservations
 @login_required
 def bookings(request):
     reservations = Reservation.objects.filter(
@@ -122,3 +110,29 @@ def bookings(request):
     return render(request, "rooms/bookings.html", {
         "reservations": reservations
     })
+
+
+# Favorite rooms
+@login_required
+def favorite_rooms(request):
+    rooms = request.user.favorite_rooms.all()
+    return render(request, "rooms/favorites.html", {"rooms": rooms})
+
+
+@login_required
+@require_POST
+def toggle_favorite(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+
+    if request.user in room.favorites.all():
+        room.favorites.remove(request.user)
+        is_favorited = False
+    else:
+        room.favorites.add(request.user)
+        is_favorited = True
+
+    return JsonResponse({
+        'success': True,
+        'favorited': is_favorited
+    })
+

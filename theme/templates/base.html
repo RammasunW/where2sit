@@ -146,11 +146,12 @@ a.button-link:hover {
                 <!--Nav links-->
                 <div class="flex items-center space-x-6">
                     <a href="{% url 'rooms:room_list' %}" class="text-gray-600 hover:text-primary transition">Rooms</a>
-                    <a href="{% url 'rooms:reservation' %}" class="text-gray-600 hover:text-primary transition">Reservation</a>
-                    <a href="{% url 'rooms:bookings' %}" class="button-link">My Bookings</a>
 
                     <!-- User authentication -->
                     {% if user.is_authenticated %}
+                    <a href="{% url 'rooms:reservation' %}" class="text-gray-600 hover:text-primary transition">Reservation</a>
+                    <a href="{% url 'rooms:bookings' %}" class="text-gray-600 hover:text-primary transition">My Bookings</a>
+                    <a href="{% url 'rooms:favorites' %}" class="text-gray-600 hover:text-primary transition">Favorites</a>
                       <p>Welcome, {{ user.username }}</p>
                       <form action="/accounts/logout/" method="post">
                         {% csrf_token %}

@@ -69,6 +69,17 @@
             <div class="mt-4">
                 <a href="#" class="text-blue-500 hover:text-blue-700">View Details →</a>
             </div>
+            <span
+              class="favorite-star"
+              data-room-id="{{ room.id }}"
+              style="cursor: pointer; font-size: 20px;"
+            >
+              {% if user in room.favorites.all %}
+                ★
+              {% else %}
+                ☆
+              {% endif %}
+            </span>
         </div>
         {% endfor %}
     </div>
@@ -80,6 +91,36 @@
     {% endif %}
 
 </div>
+
+<form style="display:none;">
+  {% csrf_token %}
+</form>
+
+<script>
+function getCSRFToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]').value;
+}
+
+document.querySelectorAll('.favorite-star').forEach(star => {
+    star.addEventListener('click', async function () {
+        const roomId = this.dataset.roomId;
+
+        const response = await fetch(`/favorite/${roomId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.favorited) {
+            this.textContent = '★';
+        } else {
+            this.textContent = '☆';
+        }
+    });
+});
+</script>
+
 {% endblock %}
-
-

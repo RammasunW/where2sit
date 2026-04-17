@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from rooms.models import Building, Room
+from django.contrib.auth.models import User
 
 
 class Command(BaseCommand):
@@ -9,7 +10,19 @@ class Command(BaseCommand):
     def create_room(building, number, capacity):
         Room.objects.create(building=building, number=number, capacity=capacity)
 
+    @staticmethod
+    def create_user(username, password):
+        if not User.objects.filter(username=username).exists():
+            User.objects.create_user(username=username, password=password)
+
     def handle(self, *args, **kwargs):
+
+        # Create users
+        self.create_user("alice", "password123")
+        self.create_user("bob", "password123")
+        self.create_user("charlie", "password123")
+
+        # Create rooms
         Building.objects.all().delete()
         Room.objects.all().delete()
 
