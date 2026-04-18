@@ -1,6 +1,8 @@
 from django.urls import path
-from .views import create_reservation
+
+from . import views
 
 urlpatterns = [
-    path("reserve/", create_reservation),
+    path("reservations/", views.reservations_collection),
+    path("reservations/<int:reservation_id>/", views.reservation_detail),
 ]
