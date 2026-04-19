@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-6 space-y-6">
+
+  <!-- Room Title -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h1 class="text-3xl font-bold text-gray-800">{{ room.name }}</h1>
+  </div>
+
+  <!-- Rating Summary -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="text-xl font-semibold mb-3">Rating Overview</h2>
+
+    {% if average_rating %}
+      <div class="flex items-center space-x-3">
+        <span class="text-2xl font-bold text-yellow-500">
+          {{ average_rating }} / 5
+        </span>
+
+        <div class="text-yellow-400 text-xl">
+          {% for i in "12345" %}
+            {% if forloop.counter <= average_rating %}
+              ★
+            {% else %}
+              ☆
+            {% endif %}
+          {% endfor %}
+        </div>
+
+        <span class="text-gray-500">
+          ({{ rating_count }} reviews)
+        </span>
+      </div>
+    {% else %}
+      <p class="text-gray-400">No ratings yet</p>
+    {% endif %}
+  </div>
+
+  <!-- Comments -->
+  <div class="bg-white rounded-xl shadow p-6">
+    <h2 class="text-xl font-semibold mb-4">User Comments</h2>
+
+    <div class="space-y-4">
+      {% for r in ratings %}
+        <div class="border rounded-lg p-4 hover:shadow transition">
+          <div class="flex justify-between items-center">
+            <strong class="text-gray-800">{{ r.user.username }}</strong>
+            <span class="text-yellow-500 font-semibold">
+              {{ r.score }} ★
+            </span>
+          </div>
+
+          <p class="text-gray-600 mt-2">
+            {{ r.comment|default:"No comment" }}
+          </p>
+
+          <small class="text-gray-400 block mt-2">
+            {{ r.created_at|date:"Y-m-d H:i" }}
+          </small>
+        </div>
+      {% empty %}
+        <p class="text-gray-400">No comments yet</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Rating Form -->
+{% if user.is_authenticated %}
+<div class="bg-white rounded-xl shadow p-6">
+    <h2 class="text-xl font-semibold mb-4 text-gray-800">Rate this Room</h2>
+
+    <style>
+        .star {
+            cursor: pointer;
+            font-size: 2.2rem;
+            color: #d1d5db;
+            transition: all 0.15s ease;
+            display: inline-block;
+        }
+
+        .star.active {
+            color: #facc15;
+            transform: scale(1.15);
+            text-shadow: 0 2px 8px rgba(250, 204, 21, 0.4);
+        }
+
+        .star.hover {
+            color: #fcd34d;
+            transform: scale(1.08);
+        }
+
+        .star.pop {
+            animation: pop 0.25s ease;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.4); }
+            100% { transform: scale(1.15); }
+        }
+    </style>
+
+    <!-- ✅ FIX: form 必须包住所有 input + button -->
+    <form id="rating-form" method="post" action="{% url 'rooms:rate_room' room.id %}" class="space-y-4">
+        {% csrf_token %}
+
+        <!-- Stars -->
+        <div>
+            <label class="block mb-2 font-medium">Score</label>
+
+            <div class="flex space-x-1">
+                {% for i in "12345" %}
+                    <input
+                        type="radio"
+                        name="score"
+                        value="{{ i }}"
+                        id="star{{ i }}"
+                        class="hidden"
+                        required
+                    />
+                    <label for="star{{ i }}" class="star" data-value="{{ i }}">
+                        ★
+                    </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Comment -->
+        <div>
+            <label class="block mb-2 font-medium text-gray-700">Comment (optional)</label>
+            <textarea
+                name="comment"
+                rows="3"
+                class="w-full border border-gray-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 outline-none"
+                placeholder="What did you think?"
+            ></textarea>
+        </div>
+
+        <button
+            type="submit"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-2.5 rounded-lg"
+        >
+            Submit Review
+        </button>
+    </form>
+
+    <div id="rating-msg" class="mt-3 text-sm font-medium"></div>
+</div>
+
+<script>
+    document.getElementById('rating-form').onsubmit = async function(e) {
+        e.preventDefault();
+
+        const msg = document.getElementById('rating-msg');
+        const form = e.target;
+        const data = new FormData(form);
+
+        msg.className = "mt-3 text-sm text-blue-500";
+        msg.innerText = "Sending...";
+
+        const response = await fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': data.get('csrfmiddlewaretoken')
+            },
+            body: data
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            msg.className = "mt-3 text-sm text-green-600";
+            msg.innerText = "Review submitted successfully! Reloading...";
+            setTimeout(() => location.reload(), 800);
+        } else {
+            msg.className = "mt-3 text-sm text-red-600";
+            msg.innerText = result.error || 'Failed to submit review.';
+        }
+    };
+</script>
+<script>
+const stars = document.querySelectorAll('.star');
+const inputs = document.querySelectorAll('input[name="score"]');
+
+let selectedValue = 0;
+
+// 更新显示
+function updateStars(value) {
+    stars.forEach(star => {
+        const val = parseInt(star.dataset.value);
+
+        star.classList.remove('active', 'hover');
+
+        if (val <= value) {
+            star.classList.add('active');
+        }
+    });
+}
+
+// Hover 预览（Airbnb效果）
+stars.forEach(star => {
+    const value = parseInt(star.dataset.value);
+
+    star.addEventListener('mouseenter', () => {
+        stars.forEach(s => {
+            const v = parseInt(s.dataset.value);
+            s.classList.toggle('hover', v <= value);
+        });
+    });
+
+    star.addEventListener('mouseleave', () => {
+        stars.forEach(s => s.classList.remove('hover'));
+        updateStars(selectedValue);
+    });
+
+    // 点击选择
+    star.addEventListener('click', () => {
+        selectedValue = value;
+
+        document.querySelector(`#star${value}`).checked = true;
+
+        updateStars(selectedValue);
+
+        // ⭐ pop 动画
+        star.classList.add('pop');
+        setTimeout(() => star.classList.remove('pop'), 250);
+    });
+});
+</script>
+{% endif %}
+
+</div>
+{% endblock %}
