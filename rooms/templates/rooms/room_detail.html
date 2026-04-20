@@ -199,7 +199,7 @@ function updateStars(value) {
     });
 }
 
-// Hover 预览（Airbnb效果）
+// Hover
 stars.forEach(star => {
     const value = parseInt(star.dataset.value);
 
@@ -215,7 +215,7 @@ stars.forEach(star => {
         updateStars(selectedValue);
     });
 
-    // 点击选择
+    
     star.addEventListener('click', () => {
         selectedValue = value;
 
@@ -223,7 +223,7 @@ stars.forEach(star => {
 
         updateStars(selectedValue);
 
-        // ⭐ pop 动画
+       
         star.classList.add('pop');
         setTimeout(() => star.classList.remove('pop'), 250);
     });
