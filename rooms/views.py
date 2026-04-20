@@ -35,7 +35,7 @@ def room_list(request):
         except ValueError:
             pass
 
-    return render(request, "rooms/room_list.html", context)
+    return render(request, "rooms/room_list.html", context) #Fix if we have time...
 
 
 # User authentication
