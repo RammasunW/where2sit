@@ -1,0 +1,27 @@
+{
+  "name": "where2sit",
+  "version": "1.0.0",
+  "description": "A web-based campus room availability tracker",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Bai-Mouse/where2sit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Bai-Mouse/where2sit/issues"
+  },
+  "homepage": "https://github.com/Bai-Mouse/where2sit#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
+  }
+}
