@@ -95,7 +95,7 @@ class TestRoomListView:
         building = Building.objects.create(name="NAC")
         Room.objects.create(building=building, number="1/202", capacity=30)
         client = Client()
-        response = client.get("/")
+        response = client.get("/rooms/")
         content = response.content.decode()
         assert "NAC" in content
         assert "1/202" in content
