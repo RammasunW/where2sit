@@ -1,0 +1,1 @@
+# where2Sit Architecture
