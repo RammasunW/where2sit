@@ -1,6 +1,7 @@
 import pytest
-from django.test import Client
-from rooms.models import Building, Room
+from django.test import Client, TestCase
+from rooms.models import Building, Room, Reservation
+from django.contrib.auth.models import User
 
 
 # =====================================================
@@ -94,7 +95,7 @@ class TestRoomListView:
         building = Building.objects.create(name="NAC")
         Room.objects.create(building=building, number="1/202", capacity=30)
         client = Client()
-        response = client.get("/")
+        response = client.get("/rooms/")
         content = response.content.decode()
         assert "NAC" in content
         assert "1/202" in content
@@ -118,6 +119,94 @@ class TestRoomListView:
         assert "NAC" in content
         assert "Shepard Hall" in content
 
+
+# =====================================================
+# TESTS ON USER AUTHENTICATION
+# =====================================================
+class UserAuthTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='password123')
+
+    def test_register(self):
+        response = self.client.post('/register/', {
+            'username': 'newuser',
+            'password1': 'strongpassword123',
+            'password2': 'strongpassword123'
+        })
+        self.assertEqual(response.status_code, 302)  # redirect
+        self.assertTrue(User.objects.filter(username='newuser').exists())
+
+    def test_login(self):
+        response = self.client.post('/accounts/login/', {
+            'username': 'testuser',
+            'password': 'password123'
+        })
+        self.assertEqual(response.status_code, 302)
+
+    def test_logout(self):
+        self.client.login(username='testuser', password='password123')
+        response = self.client.post('/accounts/logout/')
+        self.assertEqual(response.status_code, 302)
+
+
+# =====================================================
+# TESTS ON FAVORITE ROOMS AND RESERVATIONS
+# =====================================================
+class RoomFeatureTests(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user = User.objects.create_user(username='testuser', password='password123')
+
+        self.building = Building.objects.create(name="NAC")
+        self.room = Room.objects.create(building=self.building, number="101", capacity=30)
+
+    def test_favorite_room(self):
+        self.client.login(username='testuser', password='password123')
+
+        response = self.client.post(f'/favorite/{self.room.id}/')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertTrue(self.room.favorites.filter(id=self.user.id).exists())
+
+    def test_unfavorite_room(self):
+        self.room.favorites.add(self.user)
+        self.client.login(username='testuser', password='password123')
+
+        response = self.client.post(f'/favorite/{self.room.id}/')
+        self.assertEqual(response.status_code, 200)
+
+        self.assertFalse(self.room.favorites.filter(id=self.user.id).exists())
+
+    def test_create_reservation(self):
+        self.client.login(username='testuser', password='password123')
+
+        response = self.client.post('/reserve/', {
+            'room': self.room.id,
+            'date': '2026-01-01',
+            'time': '10:00',
+            'duration': 2
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Reservation.objects.filter(user=self.user).exists())
+
+    def test_view_my_reservations(self):
+        Reservation.objects.create(
+            user=self.user,
+            room=self.room,
+            date='2026-01-01',
+            time='10:00',
+            duration=2
+        )
+
+        self.client.login(username='testuser', password='password123')
+        response = self.client.get('/bookings/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "101")  # room number
 
 # =====================================================
 # SANITY TEST

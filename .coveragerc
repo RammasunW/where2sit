@@ -6,6 +6,7 @@ omit =
     */tests/*
     manage.py
     wheretosit/*
+    */management/commands/seed.py
 
 [report]
 show_missing = true

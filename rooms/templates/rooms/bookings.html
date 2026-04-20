@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+  <h2>My Reservations</h2>
+
+  {% if reservations %}
+    <ul>
+      {% for r in reservations %}
+        <li style="margin-bottom: 10px;">
+          <strong>{{ r.room.building.name }} {{ r.room.number }}</strong><br>
+          Date: {{ r.date }}<br>
+          Time: {{ r.time }}<br>
+          Duration: {{ r.duration }} hour(s)
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>You have no reservations yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
