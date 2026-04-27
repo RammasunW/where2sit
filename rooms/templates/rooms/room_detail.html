@@ -2,12 +2,46 @@
 {% load static %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto p-6 space-y-6">
+<!--<div class="max-w-4xl mx-auto p-6 space-y-6">-->
+<div class="container mx-auto px-4 py-8">
 
   <!-- Room Title -->
   <div class="bg-white rounded-xl shadow p-6">
-    <h1 class="text-3xl font-bold text-gray-800">{{ room.name }}</h1>
+    <h1 class="text-3xl font-bold text-gray-800">{{ room.building.name }} - {{ room.number }}</h1>
   </div>
+
+  <!-- Room details -->
+  <div class="bg-white rounded-xl shadow overflow-hidden">
+    <div class="border-b border-gray-200 bg-gray-50 px-6 py-3">
+      <h2 class="text-xl font-semibold text-gray-800">Room Information</h2>
+    </div>
+
+    <div class="px-6 py-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Building</span>
+          <span class="text-base font-semibold text-gray-900 mt-1">{{ room.building.name }}</span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Room Number</span>
+          <span class="text-base font-semibold text-gray-900 mt-1">{{ room.number }}</span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Floor</span>
+          <span class="text-base font-semibold text-gray-900 mt-1">{{ room.floor|default:"-" }}</span>
+        </div>
+
+        <div class="flex flex-col">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Capacity</span>
+          <span class="text-base font-semibold text-gray-900 mt-1">{{ room.capacity|default:"-" }} People</span>
+        </div>
+
+      </div>
+    </div>
+  </div> 
 
   <!-- Rating Summary -->
   <div class="bg-white rounded-xl shadow p-6">
