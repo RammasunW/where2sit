@@ -1,5 +1,5 @@
 resource "aws_elastic_beanstalk_application" "application" {
-    name = "where2sit"
+  name = "where2sit"
 }
 
 resource "aws_elastic_beanstalk_environment" "environment" {
