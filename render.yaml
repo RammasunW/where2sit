@@ -1,0 +1,6 @@
+services:
+  - type: web
+  name: where2sitFork
+  env: python
+  buildCommand: "./build.sh"
+  startCommand: "gunicorn wheretosit.wsgi:application --bind 0.0.0.0:$PORT"
