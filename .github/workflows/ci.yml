@@ -56,3 +56,17 @@ jobs:
       - name: Stop Django server
         if: always()
         run: pkill -f runserver || true
+
+      - name: Create unique deployment zip
+        run: |
+          ZIP_NAME="flaskbb_deploy-${{ github.run_id }}.zip"
+          
+          zip -r $ZIP_NAME . -x ".git*" "*.pytest_cache*" "frontend/node_modules*"
+          
+          echo "ZIP_FILE=$ZIP_NAME" >> $GITHUB_ENV
+
+      - name: Upload Deployment Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flaskbb_deploy-${{ github.run_id }}
+          path: ${{ env.ZIP_FILE }}

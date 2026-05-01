@@ -21,7 +21,8 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include("rooms.urls")),
+    path("", include("rooms.urls")),
+    path("", include("reservations.urls")),
     path('__reload__/', include('django_browser_reload.urls')),
     path('accounts/', include('django.contrib.auth.urls')),
 ]
