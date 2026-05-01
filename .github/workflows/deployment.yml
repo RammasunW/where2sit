@@ -1,0 +1,45 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flaskbb_deploy-${{ github.run_id }} 
+
+      - name: Upload to S3
+        run: |
+          aws s3 cp "flaskbb_deploy-${{ github.run_id }}.zip" s3://terraform-state-where2sit-bai-mouse
+
+      - name: Create Application Version in Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name flaskbb \
+            --source-bundle S3Bucket="terraform-state-where2sit-bai-mouse",S3Key="flaskbb_deploy-${{ github.run_id }}.zip" \
+            --version-label "ver-${{ github.run_id }}" \
+            --description "Deployed via GitHub Actions - Run ${{ github.run_id }}" \
+            --region "us-east-2"
+
+      - name: Deploy to Environment
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name flaskbb-environment \
+            --version-label "ver-${{ github.run_id }}" \
+            --region "us-east-2"
