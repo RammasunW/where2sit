@@ -20,3 +20,9 @@ terraform/.terraform/terraform.tfstate
 terraform/backend.tf
 terraform/elastic_beanstalk.tf
 terraform/provider.tf
+
+# playwright
+node modules
+
+# .idea folder
+.idea

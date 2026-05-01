@@ -27,5 +27,32 @@ jobs:
       - name: Run migrations
         run: python manage.py migrate
 
-      - name: Run tests with coverage
-        run: pytest --cov=rooms --cov-report=term -v
+      - name: Install Playwright browsers
+        run: playwright install --with-deps chromium
+
+      - name: Run unit and integration tests with coverage
+        run: pytest --cov=rooms --cov-report=term --cov-report=xml -v rooms/tests.py rooms/test_integration.py
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      # Launch application in background
+      - name: Start Django development server
+        run: |
+          python manage.py runserver 8000 &
+          sleep 5  # Wait for server to start
+        env:
+          DJANGO_SETTINGS_MODULE: wheretosit.settings
+
+      - name: Run E2E tests
+        run: pytest rooms/test_e2e.py --base-url=http://localhost:8000 -v
+
+      # Stop server (cleanup)
+      - name: Stop Django server
+        if: always()
+        run: pkill -f runserver || true

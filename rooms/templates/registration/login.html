@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+  <h2>Sign In</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <label>Username</label>
+    <input type="text" name="username" placeholder="Enter username" required>
+
+    <label>Password</label>
+    <input type="password" name="password" placeholder="Enter password" required>
+
+    <button type="submit">Login</button>
+  </form>
+
+  {% if form.errors %}
+    <p class="error">Invalid username or password</p>
+  {% endif %}
+
+  <p style="text-align:center; margin-top:15px;">
+    Don’t have an account?
+    <a href="/register/" class="button-link">Register</a>
+  </p>
+</div>
+{% endblock %}

@@ -1,0 +1,190 @@
+<!-- {% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Django Tailwind</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    {% tailwind_css %}
+</head>
+
+<body class="bg-gray-50 text-black font-serif leading-normal tracking-normal">
+<div class="container mx-auto">
+    <section class="flex items-center justify-center h-screen">
+        <h1 class="text-5xl">Django + Tailwind = ❤️</h1>
+    </section>
+</div>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f6f8;
+    margin: 0;
+  }
+
+  /* Navbar */
+  .navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background-color: #e5e7eb;
+  }
+
+  .navbar a {
+    margin-left: 20px;
+    text-decoration: none;
+    color: #333;
+  }
+
+  /* Center container */
+  .auth-container {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .auth-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0 15px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background-color: #1d4ed8;
+  }
+
+  a.button-link {
+  display: inline-block;
+  padding: 10px 15px;
+  margin-top: 10px;
+  background-color: #2563eb;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+}
+
+a.button-link:hover {
+  background-color: #1d4ed8;
+}
+
+.password-hints {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 15px;
+  padding-left: 18px;
+}
+
+.password-hints li {
+  margin-bottom: 5px;
+}
+
+  .error {
+    color: red;
+    font-size: 14px;
+  }
+</style>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>where2sit - Find Your Perfect Study Spot</title>
+
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/dist/styles.css' %}">
+
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- CSRF Token needed? -->
+    <meta name="htmx-config" content='{"csrfToken": "{{ csrf_token }}"}'>
+</head>
+
+<body class="bg-gray-50 font-sans antialiased">
+
+    <!-- nav bar -->
+    <nav class="bg-white shadow-md sticky top-0 z50">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <!--Would be putting a logo right about here...-->
+                <a href="/" class="flex items-center space-x-2">
+                    <span class="text-xl font-bold text-blue-600">where2sit</span>
+                </a>
+
+                <!--Search bar(placeholder)-->
+                <div class="hidden md: flex-1 max-w-md mx-8">
+                    <input type="text"
+                            placeholder="Search for rooms..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                </div>
+
+                <!--Nav links-->
+                <div class="flex items-center space-x-6">
+                    <a href="{% url 'rooms:room_list' %}" class="text-gray-600 hover:text-primary transition">Rooms</a>
+
+                    <!-- User authentication -->
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'rooms:reservation' %}" class="text-gray-600 hover:text-primary transition">Reservation</a>
+                    <a href="{% url 'rooms:bookings' %}" class="text-gray-600 hover:text-primary transition">My Bookings</a>
+                    <a href="{% url 'rooms:favorites' %}" class="text-gray-600 hover:text-primary transition">Favorites</a>
+                      <p>Welcome, {{ user.username }}</p>
+                      <form action="/accounts/logout/" method="post">
+                        {% csrf_token %}
+                        <button type="submit">Log out</button>
+                      </form>
+                    {% else %}
+                        <a href="/accounts/login/">
+                            <button>Sign In</button></a>
+                        <a href="/register/">
+                            <button>Register</button>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!--Main content where child templates insert their content...-->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="container mx-auto px-4 py-8">
+            <div class="text-center text-gray-500 text-sm">
+                © 2026 where2sit. Find your perfect study spot on campus.
+            </div>
+        </div>
+    </footer>
+
+    <!--Additional scripts potentially added by child templates-->
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>

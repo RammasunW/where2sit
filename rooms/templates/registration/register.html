@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+  <h2>Create Account</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <label>Username</label>
+    <input type="text" name="username" placeholder="Choose username" required>
+
+    <label>Password</label>
+    <input type="password" name="password1" placeholder="Enter password" required>
+    <ul class="password-hints">
+      <li>Must be at least 8 characters</li>
+      <li>Cannot be too similar to your username</li>
+      <li>Cannot be a common password</li>
+    </ul>
+
+    <label>Confirm Password</label>
+    <input type="password" name="password2" placeholder="Confirm password" required>
+
+    <button type="submit">Register</button>
+  </form>
+
+  {% if form.errors %}
+  <div class="error">
+    {% for field in form %}
+      {% for error in field.errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <p style="text-align:center; margin-top:15px;">
+    Already have an account?
+    <a href="/accounts/login/" class="button-link">Sign In</a>
+  </p>
+</div>
+{% endblock %}
