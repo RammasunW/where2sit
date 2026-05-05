@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
-from rooms.models import Building, Room, RoomRating
+from rooms.models import Building, Room, RoomRating, ClassSchedule
 from django.contrib.auth.models import User
+from datetime import time
 
 
 class Command(BaseCommand):
@@ -8,12 +9,20 @@ class Command(BaseCommand):
 
     @staticmethod
     def create_room(building, number, capacity):
-        Room.objects.create(building=building, number=number, capacity=capacity)
+        return Room.objects.create(building=building, number=number, capacity=capacity)
 
     @staticmethod
     def create_user(username, password):
         if not User.objects.filter(username=username).exists():
-            User.objects.create_user(username=username, password=password)
+            return User.objects.create_user(username=username, password=password)
+
+    @staticmethod
+    def create_class(room, day, start, end, name):
+        return ClassSchedule.objects.create(room=room,
+                                     day_of_week=day,
+                                     start_time=start,
+                                     end_time=end,
+                                     course_name=name)
 
     def handle(self, *args, **kwargs):
 
@@ -36,7 +45,7 @@ class Command(BaseCommand):
         self.create_room(b1, "1/511E", 35)
         self.create_room(b1, "4/113", 40)
         self.create_room(b1, "6/111", 40)
-        self.create_room(b1, "6/112", 30)
+        NAC6112 = self.create_room(b1, "6/112", 30)
         self.create_room(b1, "6/113", 40)
         self.create_room(b1, "6/121", 30)
         self.create_room(b1, "6/310", 30)
@@ -61,6 +70,10 @@ class Command(BaseCommand):
 
         # Steinman
         self.create_room(b4, "161", 100)
+
+        # Add class schedule for some rooms
+        self.create_class(NAC6112, 1, time(14,0), time(15,15), "MATH 30800")
+        self.create_class(NAC6112, 3, time(14,0), time(15,15), "MATH 30800")
 
         # Add sample ratings for some rooms
         from random import randint, choice
