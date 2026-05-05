@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
 from .models import Room, Building, RoomRating, Reservation
-from datetime import datetime
+from datetime import datetime, date
 # Create your views here.
 
 def home(request):
@@ -203,11 +203,22 @@ def rate_room(request, room_id):
 def room_detail(request, room_id):
     room = get_object_or_404(Room, id=room_id)
     ratings = room.ratings.select_related('user').order_by('-created_at')
+    date_str = request.GET.get('date')
+
+    if date_str:
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    else:
+        selected_date = date.today()
+
+    schedule = room.get_schedule_for_day(selected_date)
+
     context = {
         'room': room,
         'average_rating': room.average_rating,
         'rating_count': room.rating_count,
         'ratings': ratings,
+        'schedule': schedule,
+        'selected_date': selected_date,
     }
     return render(request, 'rooms/room_detail.html', context)
 

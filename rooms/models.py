@@ -54,6 +54,41 @@ class Room(models.Model):
 
         return not reservation_conflict
 
+    def get_schedule_for_day(self, date):
+        day_of_week = date.weekday()
+
+        events = []
+
+        # Classes
+        classes = ClassSchedule.objects.filter(
+            room=self,
+            day_of_week=day_of_week
+        )
+
+        for c in classes:
+            events.append({
+                "type": "class",
+                "start": c.start_time,
+                "end": c.end_time,
+                "label": c.course_name
+            })
+
+        # Reservations
+        reservations = Reservation.objects.filter(
+            room=self,
+            date=date
+        )
+
+        for r in reservations:
+            events.append({
+                "type": "reservation",
+                "start": r.start_time,
+                "end": r.end_time,
+                "label": "Reserved"
+            })
+
+        return events
+
 # Reservation model for room booking
 class Reservation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

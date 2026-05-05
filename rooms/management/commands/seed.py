@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
-from rooms.models import Building, Room, RoomRating, ClassSchedule
+from rooms.models import *
 from django.contrib.auth.models import User
-from datetime import time
+from datetime import time, date
 
 
 class Command(BaseCommand):
@@ -24,10 +24,20 @@ class Command(BaseCommand):
                                      end_time=end,
                                      course_name=name)
 
+    @staticmethod
+    def create_reservation(user, room, date, start_time, end_time):
+        return Reservation.objects.create(
+            user=user,
+            room=room,
+            date=date,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
     def handle(self, *args, **kwargs):
 
         # Create users
-        self.create_user("alice", "password123")
+        alice = self.create_user("alice", "password123")
         self.create_user("bob", "password123")
         self.create_user("charlie", "password123")
 
@@ -74,6 +84,7 @@ class Command(BaseCommand):
         # Add class schedule for some rooms
         self.create_class(NAC6112, 1, time(14,0), time(15,15), "MATH 30800")
         self.create_class(NAC6112, 3, time(14,0), time(15,15), "MATH 30800")
+        self.create_class(NAC6112, 1, time(17,0), time(19,30), "TEST 12345")
 
         # Add sample ratings for some rooms
         from random import randint, choice
