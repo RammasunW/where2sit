@@ -19,3 +19,4 @@ node modules
 
 # .idea folder
 .idea
+/terraform

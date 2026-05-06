@@ -217,8 +217,8 @@ def test_complete_reservation_workflow(page: Page, live_server):
     # Step 3: Fill out reservation form
     page.select_option('select[name="room"]', label='NAC 1/202 (30 seats)')
     page.fill('input[name="date"]', '2026-06-15')
-    page.fill('input[name="time"]', '10:00')
-    page.fill('input[name="duration"]', '2')
+    page.fill('input[name="start_time"]', '10:00')
+    page.fill('input[name="end_time"]', '12:00')
 
     # Step 4: Submit reservation
     page.click('button:has-text("Reserve Now")')
@@ -230,8 +230,8 @@ def test_complete_reservation_workflow(page: Page, live_server):
     expect(page.locator('.font-semibold:has-text("NAC 1/202")')).to_be_visible()
     # Django formats dates as "June 15, 2026" by default in templates
     expect(page.locator('text=June 15, 2026')).to_be_visible()
-    expect(page.locator('text=10:00')).to_be_visible()
-    expect(page.locator('text=2')).to_be_visible()
+    expect(page.locator('text=10 a.m.')).to_be_visible()
+    expect(page.locator('text=noon')).to_be_visible()
 
     # Step 7: Verify in database
     reservation = Reservation.objects.filter(user__username='testuser').first()
@@ -261,8 +261,8 @@ def test_view_bookings_after_reservation(page: Page, live_server):
     page.click('a:has-text("Reservation")')
     page.select_option('select[name="room"]', label='NAC 1/202 (30 seats)')
     page.fill('input[name="date"]', '2026-07-20')
-    page.fill('input[name="time"]', '14:30')
-    page.fill('input[name="duration"]', '3')
+    page.fill('input[name="start_time"]', '14:30')
+    page.fill('input[name="end_time"]', '17:30')
     page.click('button:has-text("Reserve Now")')
     
     # Navigate to My Bookings
@@ -497,8 +497,8 @@ def test_complete_user_journey(page: Page, live_server):
     page.click('a:has-text("Reservation")')
     page.select_option('select[name="room"]', label='NAC 1/202 (30 seats)')
     page.fill('input[name="date"]', '2026-08-10')
-    page.fill('input[name="time"]', '11:00')
-    page.fill('input[name="duration"]', '2')
+    page.fill('input[name="start_time"]', '11:00')
+    page.fill('input[name="end_time"]', '13:00')
     page.click('button:has-text("Reserve Now")')
 
     # Should see success message
@@ -673,16 +673,16 @@ def test_create_multiple_reservations_workflow(page: Page, live_server):
     page.click('a:has-text("Reservation")')
     page.select_option('select[name="room"]', label='NAC 1/202 (30 seats)')
     page.fill('input[name="date"]', '2026-06-01')
-    page.fill('input[name="time"]', '09:00')
-    page.fill('input[name="duration"]', '2')
+    page.fill('input[name="start_time"]', '09:00')
+    page.fill('input[name="end_time"]', '11:00')
     page.click('button:has-text("Reserve Now")')
     expect(page.locator('text=Reservation successful')).to_be_visible()
     
     # Reservation 2
     page.select_option('select[name="room"]', label='NAC 1/203 (40 seats)')
     page.fill('input[name="date"]', '2026-06-05')
-    page.fill('input[name="time"]', '14:00')
-    page.fill('input[name="duration"]', '1')
+    page.fill('input[name="start_time"]', '14:00')
+    page.fill('input[name="end_time"]', '15:00')
     page.click('button:has-text("Reserve Now")')
     expect(page.locator('text=Reservation successful')).to_be_visible()
     
