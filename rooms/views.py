@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
 from .models import Room, Building, RoomRating, Reservation
+from datetime import datetime, date
 # Create your views here.
 
 def home(request):
@@ -35,6 +36,11 @@ def room_list(request):
             rooms = rooms.filter(capacity__gte=min_capacity)
         except ValueError:
             pass
+
+    if date and time:
+        date_ = datetime.strptime(date, "%Y-%m-%d").date()
+        start_time = datetime.strptime(time, "%H:%M").time()
+        rooms = [room for room in rooms if room.is_available(date_, start_time, start_time)]
 
     selected_building = building_id if building_id else ''
     selected_date = date if date else ''
@@ -84,24 +90,33 @@ def reservation(request):
     if request.method == 'POST':
         room_id = request.POST.get('room')
         date = request.POST.get('date')
-        time_ = request.POST.get('time')
-        duration = request.POST.get('duration')
-        
-        if not (room_id and date and time_ and duration):
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+
+        date_ = datetime.strptime(date, "%Y-%m-%d").date()
+        start_time_ = datetime.strptime(start_time, "%H:%M").time()
+        end_time_ = datetime.strptime(end_time, "%H:%M").time()
+
+        if not (room_id and date and start_time and end_time):
             error = 'Please fill in all required fields.'
+        elif start_time_ > end_time_:
+            error = 'Please fill in the correct time.'
         else:
             try:
                 # Validate room exists
                 room = Room.objects.get(id=room_id)
-                
-                reservation = Reservation.objects.create(
-                    user=request.user,
-                    room=room,  # Use the room object instead of room_id
-                    date=date,
-                    time=time_,
-                    duration=duration,
-                )
-                success = True
+
+                if not room.is_available(date_, start_time_, end_time_):
+                    error = "Room is not available at this time."
+                else:
+                    reservation = Reservation.objects.create(
+                        user=request.user,
+                        room=room,  # Use the room object instead of room_id
+                        date=date,
+                        start_time=start_time,
+                        end_time=end_time,
+                    )
+                    success = True
             except Room.DoesNotExist:
                 error = 'The selected room does not exist.'
             except Exception as e:
@@ -188,11 +203,23 @@ def rate_room(request, room_id):
 def room_detail(request, room_id):
     room = get_object_or_404(Room, id=room_id)
     ratings = room.ratings.select_related('user').order_by('-created_at')
+    date_str = request.GET.get('date')
+
+    # Show room availability by date, default to today
+    if date_str:
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    else:
+        selected_date = date.today()
+
+    schedule = room.get_schedule_for_day(selected_date)
+
     context = {
         'room': room,
         'average_rating': room.average_rating,
         'rating_count': room.rating_count,
         'ratings': ratings,
+        'schedule': schedule,
+        'selected_date': selected_date,
     }
     return render(request, 'rooms/room_detail.html', context)
 

@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load time_filters %}
 
 {% block content %}
 <!--<div class="max-w-4xl mx-auto p-6 space-y-6">-->
@@ -9,6 +10,58 @@
   <div class="bg-white rounded-xl shadow p-6">
     <h1 class="text-3xl font-bold text-gray-800">{{ room.building.name }} - {{ room.number }}</h1>
   </div>
+
+    <!-- Choose and Display Schedule -->
+    <form method="get" style="margin-bottom: 20px;">
+      <label>Select Date:</label>
+      <input
+        type="date"
+        name="date"
+        value="{{ selected_date|date:'Y-m-d' }}"
+      >
+        <button type="submit">View</button>
+    </form>
+
+    <div class="bg-white rounded-xl shadow p-6">
+      <h2 class="text-xl font-semibold mb-4">
+        Schedule for {{ selected_date }}
+      </h2>
+
+      <div class="time-bar">
+          {% for event in schedule %}
+            <div
+              class="event {{ event.type }}"
+              style="
+                left: {{ event.start|time_to_percent }}%;
+                width: {{ event|duration_to_percent }}%;
+              "
+            >
+              {{ event.label }}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="flex justify-between text-xs text-gray-500 mt-2">
+          <span>8:00</span>
+          <span>9:00</span>
+          <span>10:00</span>
+          <span>11:00</span>
+          <span>12:00</span>
+          <span>13:00</span>
+          <span>14:00</span>
+          <span>15:00</span>
+          <span>16:00</span>
+          <span>17:00</span>
+          <span>18:00</span>
+          <span>19:00</span>
+          <span>20:00</span>
+          <span>21:00</span>
+          <span>22:00</span>
+        </div>
+
+      {% if not schedule %}
+        <p class="text-gray-400 mt-3">Room is fully available this day</p>
+      {% endif %}
+    </div>
 
   <!-- Room details -->
   <div class="bg-white rounded-xl shadow overflow-hidden">
@@ -41,7 +94,7 @@
 
       </div>
     </div>
-  </div> 
+  </div>
 
   <!-- Rating Summary -->
   <div class="bg-white rounded-xl shadow p-6">

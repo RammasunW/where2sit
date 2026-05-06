@@ -10,8 +10,8 @@
         <li style="margin-bottom: 10px;">
           <strong>{{ r.room.building.name }} {{ r.room.number }}</strong><br>
           Date: {{ r.date }}<br>
-          Time: {{ r.time }}<br>
-          Duration: {{ r.duration }} hour(s)
+          From: {{ r.start_time }}<br>
+          To: {{ r.end_time }}
         </li>
       {% endfor %}
     </ul>
