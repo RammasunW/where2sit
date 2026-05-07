@@ -41,6 +41,8 @@ class Command(BaseCommand):
         self.create_user("bob", "password123")
         self.create_user("charlie", "password123")
 
+        '''
+        # REAL WORLD DATA HANDLED IN import_classes COMMAND
         # Create rooms
         Building.objects.all().delete()
         Room.objects.all().delete()
@@ -104,6 +106,7 @@ class Command(BaseCommand):
         self.create_class(NAC6112, 1, time(14,0), time(15,15), "MATH 30800")
         self.create_class(NAC6112, 3, time(14,0), time(15,15), "MATH 30800")
         self.create_class(NAC6112, 3, time(17,0), time(19,30), "ECO 43250")
+        '''
 
         # Add sample ratings for some rooms
         from random import randint, choice
