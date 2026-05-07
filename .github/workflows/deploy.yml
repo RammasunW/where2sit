@@ -1,0 +1,44 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'terraform/**'
+      - '**.md'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Generate deployment package
+        run: zip -r deploy-${{ github.sha }}.zip . -x '*.git*' 'venv/*' '__pycache__/*' '*.pyc' 'terraform/*'
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY_ID2 }}
+          aws-secret-access-key: ${{ secrets.SECRET_ACCESS_KEY2 }}
+          aws-region: us-east-1
+      
+      - name: Upload to S3
+        run: |
+          aws s3 cp deploy-${{ github.sha }}.zip s3://j-orell-where2sit-wheretosit/
+      
+      - name: Create Elastic Beanstalk version
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name wheretosit \
+            --source-bundle S3Bucket="j-orell-where2sit-wheretosit",S3Key="deploy-${{ github.sha }}.zip" \
+            --version-label "ver-${{ github.sha }}" \
+            --description "Deployed from commit ${{ github.sha }}"
+      
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name wheretosit-environment \
+            --version-label "ver-${{ github.sha }}"
