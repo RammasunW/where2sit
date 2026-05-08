@@ -1,8 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="bg-linear-to-br from-primary to-purple-600 min-h-screen">
 <div class="container mx-auto px-4 py-8">
-    <h1 class="text-3xl font-bold mb-6">Reserve a Room</h1>
+    <!--<h1 class="text-3xl font-bold text-white mb-6">Reserve a Room</h1> -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl md:text-5xl font-bold bg-linear-to-r text-white bg-clip-text drop-shadow-lg">
+            Reserve a Room
+        </h1>
+        <p class="text-white mt-2">Book your study space now</p>
+    </div>
     <div class="bg-white rounded-lg shadow-md p-6 max-w-lg mx-auto">
         <form method="post" action="">
             {% csrf_token %}
@@ -41,18 +48,21 @@
         {% if my_reservations and my_reservations|length > 0 %}
         <ul class="divide-y divide-gray-200">
             {% for r in my_reservations %}
+            {% if r.status in "Pending, Approved" %}
             <li class="py-3">
                 <div class="flex flex-col">
                     <span class="font-semibold text-gray-800">{{ r.room.building.name }} {{ r.room.number }}</span>
-                    <span class="text-gray-600 text-sm">Date: {{ r.date }} | From {{ r.start_time }} to {{ r.end_time }}</span>
+                    <span class="text-gray-600 text-sm">Date: {{ r.date }} | From {{ r.start_time }} to {{ r.end_time }} | {{ r.status }}</span>
                     {% if r.name %}<span class="text-gray-400 text-xs">Name: {{ r.name }}</span>{% endif %}
                 </div>
             </li>
+            {% endif %}
             {% endfor %}
         </ul>
         {% else %}
         <div class="text-gray-500">No reservations yet.</div>
         {% endif %}
     </div>
+</div>
 </div>
 {% endblock %}
