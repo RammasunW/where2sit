@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from rooms.models import *
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group
 from datetime import time, date
 
 
@@ -8,13 +8,15 @@ class Command(BaseCommand):
     help = "Seed the database with sample data"
 
     @staticmethod
-    def create_room(building, number, capacity):
-        return Room.objects.create(building=building, number=number, capacity=capacity)
+    def create_room(building, number, capacity, floor):
+        return Room.objects.create(building=building, number=number, capacity=capacity, floor=floor)
 
     @staticmethod
     def create_user(username, password):
         if not User.objects.filter(username=username).exists():
             return User.objects.create_user(username=username, password=password)
+        else:
+            return User.objects.get(username=username)
 
     @staticmethod
     def create_class(room, day, start, end, name):
@@ -36,10 +38,15 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
 
+        # Manager role users
+        manager_group, _ = Group.objects.get_or_create(name='Manager')
+        
         # Create users
         alice = self.create_user("alice", "password123")
         self.create_user("bob", "password123")
-        self.create_user("charlie", "password123")
+        charlie = self.create_user("charlie", "password123")
+
+        charlie.groups.add(manager_group)
 
         # Create rooms
         Building.objects.all().delete()
@@ -51,35 +58,35 @@ class Command(BaseCommand):
         b4 = Building.objects.create(name="Steinman")
 
         # NAC
-        self.create_room(b1, "1/203", 90)
-        self.create_room(b1, "1/511E", 35)
-        self.create_room(b1, "4/113", 40)
-        self.create_room(b1, "6/111", 40)
-        NAC6112 = self.create_room(b1, "6/112", 30)
-        self.create_room(b1, "6/113", 40)
-        self.create_room(b1, "6/121", 30)
-        self.create_room(b1, "6/310", 30)
-        self.create_room(b1, "7/313A", 30)
+        self.create_room(b1, "1/203", 90, 2)
+        self.create_room(b1, "1/511E", 35, 1)
+        self.create_room(b1, "4/113", 40, 4)
+        self.create_room(b1, "6/111", 40, 6)
+        NAC6112 = self.create_room(b1, "6/112", 30, 6)
+        self.create_room(b1, "6/113", 40, 6)
+        self.create_room(b1, "6/121", 30, 6)
+        self.create_room(b1, "6/310", 30, 6)
+        self.create_room(b1, "7/313A", 30, 7)
 
         # SH
-        self.create_room(b2, "201", 30)
-        self.create_room(b2, "210", 45)
-        self.create_room(b2, "203", 30)
-        self.create_room(b2, "204", 30)
-        self.create_room(b2, "378", 30)
+        self.create_room(b2, "201", 30, 2)
+        self.create_room(b2, "210", 45, 2)
+        self.create_room(b2, "203", 30, 2)
+        self.create_room(b2, "204", 30, 2)
+        self.create_room(b2, "378", 30, 3)
 
         # Marshak
-        self.create_room(b3, "410", 30)
-        self.create_room(b3, "1307", 30)
-        self.create_room(b3, "1026", 30)
-        self.create_room(b3, "1123", 30)
-        self.create_room(b3, "MR1", 100)
-        self.create_room(b3, "MR2", 240)
-        self.create_room(b3, "MR3", 240)
+        self.create_room(b3, "410", 30, 4)
+        self.create_room(b3, "1307", 30, 13)
+        self.create_room(b3, "1026", 30, 10)
+        self.create_room(b3, "1123", 30, 11)
+        self.create_room(b3, "MR1", 100, 1)
+        self.create_room(b3, "MR2", 240, 1)
+        self.create_room(b3, "MR3", 240, 1)
 
 
         # Steinman
-        self.create_room(b4, "161", 100)
+        self.create_room(b4, "161", 100, 1)
 
         # Add class schedule for some rooms
         # 0 = Mon, 1 = Tue, 2 = Wed, 3 = Thu, 4 = Fri, 5 = Sat, 6 = Sun

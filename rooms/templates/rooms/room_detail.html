@@ -88,6 +88,11 @@
         </div>
 
         <div class="flex flex-col">
+          <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Room Type</span>
+          <span class="text-base font-semibold text-gray-900 mt-1">{{ room.room_type|default:"-" }}</span>
+        </div>
+
+        <div class="flex flex-col">
           <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Capacity</span>
           <span class="text-base font-semibold text-gray-900 mt-1">{{ room.capacity|default:"-" }} People</span>
         </div>
