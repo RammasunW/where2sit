@@ -59,7 +59,7 @@ class Command(BaseCommand):
 
         # Create buildings
         for b in BUILDING_MAP:
-            Building.objects.create(name=BUILDING_MAP[b])
+            Building.objects.update_or_create(name=BUILDING_MAP[b])
 
         data_dir = Path("rooms/data/")
 
