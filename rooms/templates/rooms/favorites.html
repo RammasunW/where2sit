@@ -1,37 +1,49 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <h1 class="text-3xl font-bold mb-6">My Favorite Rooms</h1>
+<div class="bg-linear-to-br from-primary to-purple-600 min-h-screen">
 
-  {% if rooms %}
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {% for room in rooms %}
-        <div class="card">
-            <h3 class="text-xl font-bold">{{ room.building }} {{ room.number }}</h3>
-            <p class="text-gray-600">Capacity: {{ room.capacity }} seats</p>
-            <div class="mt-4">
-                <a href="#" class="text-blue-500 hover:text-blue-700">View Details →</a>
-            </div>
-            <span
-              class="favorite-star"
-              data-room-id="{{ room.id }}"
-              style="cursor: pointer; font-size: 20px;"
-            >
-              {% if user in room.favorites.all %}
-                ★
-              {% else %}
-                ☆
-              {% endif %}
-            </span>
-        </div>
-        {% endfor %}
+
+  <div class="container mx-auto px-4 py-8">
+    <div class="text-center mb-8">
+
+    <h1 class="text-3xl md:text-5xl font-bold bg-linear-to-r text-white bg-clip-text drop-shadow-lg mb-6">
+      My Favorite Rooms
+    </h1>
+    <p class="text-white mt-2">
+      Bookmark your favorite study spaces for quick access and easy reference
+    </p>
     </div>
-    {% else %}
-    <div class="text-center py-12 bg-gray-50 rounded-lg">
-        <p class="text-gray-400 mt-2">No favorite rooms yet.</p>
-    </div>
-    {% endif %}
+
+    {% if rooms %}
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {% for room in rooms %}
+          <div class="card">
+              <h3 class="text-xl font-bold">{{ room.building }} {{ room.number }}</h3>
+              <p class="text-gray-600">Capacity: {{ room.capacity }} seats</p>
+              <div class="mt-4">
+                  <a href="#" class="text-blue-500 hover:text-blue-700">View Details →</a>
+              </div>
+              <span
+                class="favorite-star"
+                data-room-id="{{ room.id }}"
+                style="cursor: pointer; font-size: 20px;"
+              >
+                {% if user in room.favorites.all %}
+                  ★
+                {% else %}
+                  ☆
+                {% endif %}
+              </span>
+          </div>
+          {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-12 bg-gray-50 rounded-lg">
+          <p class="text-gray-400 mt-2">No favorite rooms yet.</p>
+      </div>
+      {% endif %}
+  </div>
 </div>
 
 <form style="display:none;">

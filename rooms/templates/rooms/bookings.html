@@ -1,23 +1,35 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="auth-container">
-  <h2>My Reservations</h2>
+<div class="bg-linear-to-br from-primary to-purple-600 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
 
-  {% if reservations %}
-    <ul>
-      {% for r in reservations %}
-        <li style="margin-bottom: 10px;">
-          <strong>{{ r.room.building.name }} {{ r.room.number }}</strong><br>
-          Date: {{ r.date }}<br>
-          From: {{ r.start_time }}<br>
-          To: {{ r.end_time }}<br>
-          Status: {{ r.status }}<br>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>You have no reservations yet.</p>
-  {% endif %}
+    <div class="text-center mb-8">
+      <h1 class="text-3xl md:text-5xl font-bold bg-linear-to-r text-white bg-clip-text drop-shadow-lg">
+          Bookings
+      </h1>
+      <p class="text-white mt-2">View your bookings and reservation statuses here</p>
+    </div>
+
+    <div class="auth-container">
+      <h2>My Reservations</h2>
+
+      {% if reservations %}
+        <ul>
+          {% for r in reservations %}
+            <li style="margin-bottom: 10px;">
+              <strong>{{ r.room.building.name }} {{ r.room.number }}</strong><br>
+              Date: {{ r.date }}<br>
+              From: {{ r.start_time }}<br>
+              To: {{ r.end_time }}<br>
+              Status: {{ r.status }}<br>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>You have no reservations yet.</p>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}
