@@ -20,3 +20,6 @@ node modules
 # .idea folder
 .idea
 /terraform
+
+# room data
+rooms/data

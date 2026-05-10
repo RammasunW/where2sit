@@ -11,6 +11,13 @@ from rooms.models import (
 import re
 from datetime import datetime
 
+bad_room_name = ["TBA",
+                 "ONLINE",
+                 "25 Bway 7-15",
+                 "25 Bway 7-25",
+                 "Off-Campus",
+                 "Online-Synchronous",
+                 ]
 
 DAY_MAP = {
     "Mo": 0,
@@ -29,9 +36,11 @@ BUILDING_MAP = {
     "Marshak": "Marshak",
     "Steinman": "Steinman",
     "Baskerville Hall": "Baskerville Hall",
+    "Baskervill": "Baskerville Hall",
     "AaronDavis": "Aaron Davis Hall",
     "Comp Goeth": "Compton-Goethals Hall",
     "Wingate": "Wingate Hall",
+    "Harris": "Townsend Harris Hall",
     "SSA": "Spitzer Hall",
 }
 
@@ -44,12 +53,13 @@ class Command(BaseCommand):
 
         total = 0
 
+        # OPTIONAL
+        ClassSchedule.objects.all().delete()
+        Building.objects.all().delete()
+
         # Create buildings
         for b in BUILDING_MAP:
             Building.objects.create(name=BUILDING_MAP[b])
-
-        # OPTIONAL
-        ClassSchedule.objects.all().delete()
 
         data_dir = Path("rooms/data/")
 
@@ -125,117 +135,141 @@ class Command(BaseCommand):
 
                     section_name = cols[1].get_text(strip=True)
 
-                    days_times = cols[2].get_text(strip=True)
+                    times_list = [
+                        BeautifulSoup(x, "html.parser").get_text(strip=True)
+                        for x in cols[2].decode_contents().split("<br/>")
+                    ]
 
-                    room_text = cols[3].get_text(strip=True)
+                    rooms_list = [
+                        BeautifulSoup(x, "html.parser").get_text(strip=True)
+                        for x in cols[3].decode_contents().split("<br/>")
+                    ]
 
-                    instructor = cols[4].get_text(strip=True)
+                    instructors_list = [
+                        BeautifulSoup(x, "html.parser").get_text(strip=True)
+                        for x in cols[4].decode_contents().split("<br/>")
+                    ]
 
-                    if (
-                        room_text in ["TBA", "ONLINE"]
-                        or not days_times
-                    ):
-                        continue
+                    for i in range(len(times_list)):
+                        days_times = times_list[i]
 
-                    # Example:
-                    # TuTh 9:30AM - 10:45AM
+                        room_text = (
+                            rooms_list[i]
+                            if i < len(rooms_list)
+                            else rooms_list[0]
+                        )
 
-                    match = re.match(
-                        r"([A-Za-z]+)\s+"
-                        r"(\d+:\d+[AP]M)\s*-\s*"
-                        r"(\d+:\d+[AP]M)",
-                        days_times
-                    )
+                        instructor = (
+                            instructors_list[i]
+                            if i < len(instructors_list)
+                            else instructors_list[0]
+                        )
 
-                    if not match:
-                        continue
+                        if (
+                            room_text in bad_room_name
+                            or not days_times
+                        ):
+                            continue
 
-                    day_str = match.group(1)
+                        # Example:
+                        # TuTh 9:30AM - 10:45AM
 
-                    start_time = datetime.strptime(
-                        match.group(2),
-                        "%I:%M%p"
-                    ).time()
+                        match = re.match(
+                            r"([A-Za-z]+)\s+"
+                            r"(\d+:\d+[AP]M)\s*-\s*"
+                            r"(\d+:\d+[AP]M)",
+                            days_times
+                        )
 
-                    end_time = datetime.strptime(
-                        match.group(3),
-                        "%I:%M%p"
-                    ).time()
+                        if not match:
+                            continue
 
-                    building_short = None
-                    room_number = None
+                        day_str = match.group(1)
 
-                    # Match longest building name first
-                    for key in sorted(
-                            BUILDING_MAP.keys(),
-                            key=len,
-                            reverse=True
-                    ):
+                        start_time = datetime.strptime(
+                            match.group(2),
+                            "%I:%M%p"
+                        ).time()
 
-                        if room_text.startswith(key):
-                            building_short = key
+                        end_time = datetime.strptime(
+                            match.group(3),
+                            "%I:%M%p"
+                        ).time()
 
-                            room_number = room_text[len(key):].strip()
+                        building_short = None
+                        room_number = None
 
-                            break
+                        # Match longest building name first
+                        for key in sorted(
+                                BUILDING_MAP.keys(),
+                                key=len,
+                                reverse=True
+                        ):
 
-                    if not building_short or not room_number:
-                        print("Could not parse room:", room_text)
+                            if room_text.startswith(key):
+                                building_short = key
 
-                        continue
+                                room_number = room_text[len(key):].strip()
 
-                    building_name = BUILDING_MAP.get(
-                        building_short,
-                        building_short
-                    )
+                                break
 
-                    building = Building.objects.filter(
-                        name__icontains=building_name
-                    ).first()
+                        if not building_short or not room_number:
+                            print("Could not parse room:", room_text)
 
-                    if not building:
-                        continue
+                            continue
 
-                    room = Room.objects.filter(
-                        building=building,
-                        number=room_number
-                    ).first()
+                        building_name = BUILDING_MAP.get(
+                            building_short,
+                            building_short
+                        )
 
-                    if not room:
-                        room = Room.objects.create(
+                        building = Building.objects.filter(
+                            name__icontains=building_name
+                        ).first()
+
+                        if not building:
+                            continue
+
+                        room = Room.objects.filter(
                             building=building,
-                            number=room_number,
-                            capacity=30,
+                            number=room_number
+                        ).first()
+
+                        if not room:
+                            room = Room.objects.create(
+                                building=building,
+                                number=room_number,
+                                capacity=30,
+                            )
+
+                        days = re.findall(
+                            r"Mo|Tu|We|Th|Fr|Sa|Su",
+                            day_str
                         )
 
-                    days = re.findall(
-                        r"Mo|Tu|We|Th|Fr|Sa|Su",
-                        day_str
-                    )
+                        for d in days:
 
-                    for d in days:
+                            ClassSchedule.objects.get_or_create(
+                                room=room,
 
-                        ClassSchedule.objects.get_or_create(
-                            room=room,
+                                #department=department,
 
-                            #department=department,
+                                #course_number=course_number,
 
-                            #course_number=course_number,
+                                course_name=department + course_number + ' - ' + course_name,
 
-                            course_name=department + course_number + ' - ' + course_name,
+                                #section=section_name,
 
-                            #section=section_name,
+                                #instructor=instructor,
 
-                            #instructor=instructor,
+                                day_of_week=DAY_MAP[d],
 
-                            day_of_week=DAY_MAP[d],
+                                start_time=start_time,
 
-                            start_time=start_time,
+                                end_time=end_time,
+                            )
 
-                            end_time=end_time,
-                        )
-
-                        count += 1
+                            count += 1
 
                 except Exception as e:
 
