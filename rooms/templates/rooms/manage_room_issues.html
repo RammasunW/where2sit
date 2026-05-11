@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="bg-linear-to-br from-primary to-purple-600 min-h-screen">
 <div class="container mx-auto px-4 py-8">
+    <div class="text-center text-white">
     <h2 class="text-2xl font-bold mb-6">Room issue reports</h2>
+    </div>
     {% if reports %}
     <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
         <thead>
@@ -38,5 +41,6 @@
     {% else %}
     <p class="text-gray-600">No issue reports yet.</p>
     {% endif %}
+</div>
 </div>
 {% endblock %}
