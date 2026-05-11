@@ -283,19 +283,6 @@ def room_reserve(request, room_id):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
 
-def home(request):
-    rooms = Room.objects.annotate(
-        avg_rating=Avg('ratings__score')
-    ).order_by('-avg_rating')[:5]
-    
-    buildings = Building.objects.all()
-
-    context = {
-        'top_rooms': rooms,
-        'buildings': buildings,
-    }
-    return render(request, 'rooms/home.html', context)
-
 def manage_reservations(request):
     
     context = {
