@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
-from .models import Room, Building, RoomRating, Reservation
+from .models import Room, Building, RoomRating, Reservation, RoomIssueReport
 from datetime import datetime, date
 # Create your views here.
 
@@ -29,13 +29,14 @@ def home(request):
     return render(request, "rooms/home.html", context)
 
 def room_list(request):
-    rooms = Room.objects.all()
+    rooms = Room.objects.select_related('building').annotate(avg_rating=Avg('ratings__score'))
     buildings = Building.objects.all()
 
     building_id = request.GET.get('building')
     date = request.GET.get('date')
     time = request.GET.get('time')
     min_capacity = request.GET.get('min_capacity')
+    min_rating = request.GET.get('min_rating')
 
     if building_id:
         rooms = rooms.filter(building_id=building_id)
@@ -47,6 +48,13 @@ def room_list(request):
         except ValueError:
             pass
 
+    if min_rating and min_rating != '':
+        try:
+            min_rating_val = float(min_rating)
+            rooms = rooms.filter(avg_rating__gte=min_rating_val)
+        except ValueError:
+            pass
+
     if date and time:
         date_ = datetime.strptime(date, "%Y-%m-%d").date()
         start_time = datetime.strptime(time, "%H:%M").time()
@@ -55,7 +63,8 @@ def room_list(request):
     selected_building = building_id if building_id else ''
     selected_date = date if date else ''
     selected_time = time if time else ''
-    
+    selected_min_rating = min_rating if min_rating else ''
+
     context = {
         'rooms': rooms,
         'buildings': buildings,
@@ -63,6 +72,7 @@ def room_list(request):
         'selected_date': selected_date,
         'selected_time': selected_time,
         'min_capacity': min_capacity,
+        'selected_min_rating': selected_min_rating,
     }
 
     return render(request, "rooms/room_list.html", context)
@@ -86,6 +96,7 @@ def register(request):
 # Reservation view (no login required)
 
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.shortcuts import redirect
 from .models import Reservation
@@ -243,7 +254,6 @@ def room_detail(request, room_id):
 
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
 
 @login_required
 @require_POST
@@ -323,3 +333,43 @@ def update_reservation_status(request, reservation_id):
         )
 
     return redirect('rooms:manage_reservations')
+
+
+@login_required
+@require_POST
+def report_room_issue(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    description = (request.POST.get("description") or "").strip()
+    if len(description) < 5:
+        return JsonResponse(
+            {"success": False, "error": "Please describe the issue (at least 5 characters)."},
+            status=400,
+        )
+    if len(description) > 8000:
+        return JsonResponse(
+            {"success": False, "error": "Description is too long."},
+            status=400,
+        )
+    RoomIssueReport.objects.create(user=request.user, room=room, description=description)
+    return JsonResponse({"success": True})
+
+
+@login_required
+def manage_room_issues(request):
+    if not is_manager(request.user):
+        raise PermissionDenied
+    reports = RoomIssueReport.objects.select_related("user", "room__building").order_by("-created_at")
+    return render(request, "rooms/manage_room_issues.html", {"reports": reports})
+
+
+@login_required
+@require_POST
+def resolve_room_issue(request, report_id):
+    if not is_manager(request.user):
+        raise PermissionDenied
+    report = get_object_or_404(RoomIssueReport, id=report_id)
+    if report.status != RoomIssueReport.Status.RESOLVED:
+        report.status = RoomIssueReport.Status.RESOLVED
+        report.save()
+        messages.success(request, "Issue marked as resolved.")
+    return redirect("rooms:manage_room_issues")
