@@ -126,6 +126,28 @@ class RoomRating(models.Model):
         return f"{self.user.username} rated {self.room} ({self.score})"
 
 
+class RoomIssueReport(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "Open", "Open"
+        RESOLVED = "Resolved", "Resolved"
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="room_issue_reports")
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="issue_reports")
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.OPEN,
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Issue in {self.room} by {self.user.username}"
+
+
 class ClassSchedule(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
     day_of_week = models.IntegerField()  # 0=Monday, 6=Sunday

@@ -214,6 +214,10 @@ a.button-link:hover {
                            class="text-gray-600 hover:text-primary transition">
                            Manage
                         </a>
+                        <a href="{% url 'rooms:manage_room_issues' %}"
+                           class="text-gray-600 hover:text-primary transition">
+                           Issues
+                        </a>
                       {% endif %}
                     {% endfor %}
                       <p>Welcome, {{ user.username }}</p>
