@@ -403,7 +403,7 @@ def test_search_rooms_from_homepage(page: Page, live_server):
     page.fill('input[name="time"]', '10:00')
 
     # Click Find Rooms
-    page.click('button:has-text("Find Rooms")')
+    page.click('button:has-text("Find Empty Rooms Now")')
 
     # Should be on room list page with filters applied - use regex to handle URL encoding
     expect(page).to_have_url(re.compile(f"{re.escape(live_server.url)}/rooms/\\?building={nac.id}&date=2026-06-15&time=10(%3A|:)00"))  # Changed
