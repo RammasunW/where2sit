@@ -148,9 +148,21 @@ class RoomIssueReport(models.Model):
         return f"Issue in {self.room} by {self.user.username}"
 
 
+
+DAY_CHOICES = [
+    (0, "Monday"),
+    (1, "Tuesday"),
+    (2, "Wednesday"),
+    (3, "Thursday"),
+    (4, "Friday"),
+    (5, "Saturday"),
+    (6, "Sunday"),
+]
+
+
 class ClassSchedule(models.Model):
     room = models.ForeignKey(Room, on_delete=models.CASCADE)
-    day_of_week = models.IntegerField()  # 0=Monday, 6=Sunday
+    day_of_week = models.IntegerField(choices=DAY_CHOICES)  # 0=Monday, 6=Sunday
     start_time = models.TimeField()
     end_time = models.TimeField()
     course_name = models.CharField(max_length=100)

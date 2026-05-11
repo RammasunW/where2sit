@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+            {% if room %}
+                Edit Room
+            {% else %}
+                Create Room
+            {% endif %}
+        </h2>
+
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            <div>
+                <label class="block font-medium mb-1">
+                    Building
+                </label>
+                {{ form.building }}
+            </div>
+
+            <div>
+                <label class="block font-medium mb-1">
+                    Room Number
+                </label>
+                {{ form.number }}
+            </div>
+
+            <div>
+                <label class="block font-medium mb-1">
+                    Capacity
+                </label>
+                {{ form.capacity }}
+            </div>
+
+            <div class="flex gap-3 pt-4">
+
+                <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                    Save
+                </button>
+
+                <a href="{% url 'rooms:manage_rooms' %}"
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                    Cancel
+                </a>
+
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

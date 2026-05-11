@@ -212,11 +212,20 @@ a.button-link:hover {
                       {% if group.name == "Manager" %}
                         <a href="{% url 'rooms:manage_reservations' %}"
                            class="text-gray-600 hover:text-primary transition">
-                           Manage
+                           Manage Reservations
                         </a>
                         <a href="{% url 'rooms:manage_room_issues' %}"
                            class="text-gray-600 hover:text-primary transition">
                            Issues
+                        </a>
+                        <a href="{% url 'rooms:manage_rooms' %}"
+                           class="text-gray-600 hover:text-primary transition">
+                            Manage Rooms
+                        </a>
+
+                        <a href="{% url 'rooms:manage_classes' %}"
+                           class="text-gray-600 hover:text-primary transition">
+                            Manage Classes
                         </a>
                       {% endif %}
                     {% endfor %}
