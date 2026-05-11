@@ -681,6 +681,378 @@ class RoomFeatureTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "No favorite rooms")
 
+# =====================================================
+# ADDITIONAL UNIT TESTS FOR MODELS AND UTILITIES
+# =====================================================
+
+@pytest.mark.django_db
+class TestRoomIssueReportModel:
+    """Tests for the RoomIssueReport model"""
+    
+    def test_create_room_issue_report(self):
+        """A room issue report can be created with all required fields"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        report = RoomIssueReport.objects.create(
+            user=user,
+            room=room,
+            description="Projector is broken"
+        )
+        
+        assert report.user == user
+        assert report.room == room
+        assert report.description == "Projector is broken"
+        assert report.status == RoomIssueReport.Status.OPEN
+        assert RoomIssueReport.objects.count() == 1
+    
+    def test_room_issue_report_default_status(self):
+        """Room issue report defaults to OPEN status"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        report = RoomIssueReport.objects.create(
+            user=user,
+            room=room,
+            description="AC not working"
+        )
+        
+        assert report.status == "Open"
+    
+    def test_room_issue_report_str(self):
+        """RoomIssueReport __str__ returns descriptive string"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        report = RoomIssueReport.objects.create(
+            user=user,
+            room=room,
+            description="Issue description"
+        )
+        
+        expected = f"Issue in NAC - 1/202 by testuser"
+        assert str(report) == expected
+    
+    def test_room_issue_report_ordering(self):
+        """Room issue reports are ordered by created_at descending"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        report1 = RoomIssueReport.objects.create(
+            user=user, room=room, description="First issue"
+        )
+        report2 = RoomIssueReport.objects.create(
+            user=user, room=room, description="Second issue"
+        )
+        
+        reports = list(RoomIssueReport.objects.all())
+        assert reports[0] == report2  # Most recent first
+        assert reports[1] == report1
+
+
+@pytest.mark.django_db
+class TestRoomIsAvailableEdgeCases:
+    """Tests for Room.is_available() method edge cases"""
+    
+    def test_is_available_with_exact_time_boundary(self):
+        """Room should not be available if requested time exactly matches class time"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        # Class from 10:00 to 12:00 on Monday
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,  # Monday
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="Test Course"
+        )
+        
+        # Check availability on Monday at exact same time
+        test_date = date(2026, 6, 1)  # A Monday
+        available = room.is_available(test_date, time(10, 0), time(12, 0))
+        
+        assert not available
+    
+    def test_is_available_with_overlapping_start(self):
+        """Room not available if requested time overlaps with class start"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="Test Course"
+        )
+        
+        test_date = date(2026, 6, 1)  # Monday
+        # Request 9:30-10:30 (overlaps with 10:00 start)
+        available = room.is_available(test_date, time(9, 30), time(10, 30))
+        
+        assert not available
+    
+    def test_is_available_different_day(self):
+        """Room should be available on different day of week"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        # Class on Monday
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="Test Course"
+        )
+        
+        # Check Tuesday same time
+        test_date = date(2026, 6, 2)  # Tuesday
+        available = room.is_available(test_date, time(10, 0), time(12, 0))
+        
+        assert available
+    
+    def test_is_available_with_reservation_conflict(self):
+        """Room not available if reservation exists at that time"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        # Create existing reservation
+        Reservation.objects.create(
+            user=user,
+            room=room,
+            date=date(2026, 6, 15),
+            start_time=time(14, 0),
+            end_time=time(16, 0)
+        )
+        
+        # Check same date and time
+        available = room.is_available(
+            date(2026, 6, 15),
+            time(14, 0),
+            time(16, 0)
+        )
+        
+        assert not available
+
+
+@pytest.mark.django_db
+class TestGetScheduleForDay:
+    """Tests for Room.get_schedule_for_day() method"""
+    
+    def test_get_schedule_empty_day(self):
+        """Returns empty list when no classes or reservations"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        schedule = room.get_schedule_for_day(date(2026, 6, 1))
+        
+        assert schedule == []
+    
+    def test_get_schedule_with_classes_only(self):
+        """Returns class schedule for the specified day"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,  # Monday
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="MATH 101"
+        )
+        
+        monday = date(2026, 6, 1)
+        schedule = room.get_schedule_for_day(monday)
+        
+        assert len(schedule) == 1
+        assert schedule[0]["type"] == "class"
+        assert schedule[0]["label"] == "MATH 101"
+        assert schedule[0]["start"] == time(10, 0)
+        assert schedule[0]["end"] == time(12, 0)
+    
+    def test_get_schedule_with_reservations_only(self):
+        """Returns reservations for the specified day"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        Reservation.objects.create(
+            user=user,
+            room=room,
+            date=date(2026, 6, 15),
+            start_time=time(14, 0),
+            end_time=time(16, 0)
+        )
+        
+        schedule = room.get_schedule_for_day(date(2026, 6, 15))
+        
+        assert len(schedule) == 1
+        assert schedule[0]["type"] == "reservation"
+        assert schedule[0]["label"] == "Reserved"
+    
+    def test_get_schedule_with_both_classes_and_reservations(self):
+        """Returns both classes and reservations for the day"""
+        user = User.objects.create_user(username="testuser", password="pass123")
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        # Monday class
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="CS 101"
+        )
+        
+        # Monday reservation
+        monday = date(2026, 6, 1)
+        Reservation.objects.create(
+            user=user,
+            room=room,
+            date=monday,
+            start_time=time(14, 0),
+            end_time=time(16, 0)
+        )
+        
+        schedule = room.get_schedule_for_day(monday)
+        
+        assert len(schedule) == 2
+        types = [event["type"] for event in schedule]
+        assert "class" in types
+        assert "reservation" in types
+
+
+@pytest.mark.django_db
+class TestClassScheduleModel:
+    """Tests for the ClassSchedule model"""
+    
+    def test_create_class_schedule(self):
+        """A class schedule can be created with all required fields"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        schedule = ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="MATH 101"
+        )
+        
+        assert schedule.room == room
+        assert schedule.day_of_week == 0
+        assert schedule.start_time == time(10, 0)
+        assert schedule.end_time == time(12, 0)
+        assert schedule.course_name == "MATH 101"
+        assert ClassSchedule.objects.count() == 1
+    
+    def test_class_schedule_day_of_week_values(self):
+        """Class schedule can be created for different days of week"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        for day in range(7):  # 0-6 for Monday-Sunday
+            ClassSchedule.objects.create(
+                room=room,
+                day_of_week=day,
+                start_time=time(10, 0),
+                end_time=time(12, 0),
+                course_name=f"Course {day}"
+            )
+        
+        assert ClassSchedule.objects.count() == 7
+    
+    def test_class_schedule_cascade_delete(self):
+        """Deleting room deletes associated class schedules"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="MATH 101"
+        )
+        
+        assert ClassSchedule.objects.count() == 1
+        room.delete()
+        assert ClassSchedule.objects.count() == 0
+    
+    def test_multiple_class_schedules_same_room(self):
+        """Multiple class schedules can exist for the same room"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/202", capacity=30)
+        
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=0,
+            start_time=time(10, 0),
+            end_time=time(12, 0),
+            course_name="MATH 101"
+        )
+        ClassSchedule.objects.create(
+            room=room,
+            day_of_week=2,
+            start_time=time(14, 0),
+            end_time=time(16, 0),
+            course_name="CS 201"
+        )
+        
+        schedules = ClassSchedule.objects.filter(room=room)
+        assert schedules.count() == 2
+
+
+@pytest.mark.django_db
+class TestTimeFilters:
+    """Tests for template tag filters in time_filters.py"""
+    
+    def test_time_to_percent_morning(self):
+        """time_to_percent correctly calculates percentage for morning time"""
+        from rooms.templatetags.time_filters import time_to_percent
+        
+        # 8 AM should be 0%
+        result = time_to_percent(time(8, 0))
+        assert result == 0.0
+    
+    def test_time_to_percent_noon(self):
+        """time_to_percent correctly calculates percentage for noon"""
+        from rooms.templatetags.time_filters import time_to_percent
+        
+        # 3 PM (15:00) is 7 hours after 8 AM
+        # Total range is 14 hours (8 AM to 10 PM)
+        # So 7/14 = 50%
+        result = time_to_percent(time(15, 0))
+        assert result == 50.0
+    
+    def test_time_to_percent_evening(self):
+        """time_to_percent correctly calculates percentage for evening"""
+        from rooms.templatetags.time_filters import time_to_percent
+        
+        # 10 PM should be 100%
+        result = time_to_percent(time(22, 0))
+        assert result == 100.0
+    
+    def test_duration_to_percent_two_hour_block(self):
+        """duration_to_percent correctly calculates percentage for time block"""
+        from rooms.templatetags.time_filters import duration_to_percent
+        
+        event = {
+            "start": time(10, 0),
+            "end": time(12, 0)
+        }
+        
+        # 2 hours out of 14-hour day = 14.285...%
+        result = duration_to_percent(event)
+        assert abs(result - 14.285714285714286) < 0.0001
 
 # =====================================================
 # SANITY TEST
