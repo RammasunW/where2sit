@@ -21,13 +21,14 @@ def home(request):
     return render(request, "rooms/home.html", context)
 
 def room_list(request):
-    rooms = Room.objects.all()
+    rooms = Room.objects.select_related('building').annotate(avg_rating=Avg('ratings__score'))
     buildings = Building.objects.all()
 
     building_id = request.GET.get('building') # consider using id instead of name
     date = request.GET.get('date')
     time = request.GET.get('time')
     min_capacity = request.GET.get('min_capacity')
+    min_rating = request.GET.get('min_rating')
 
     if building_id:
         rooms = rooms.filter(building_id=building_id)
@@ -39,6 +40,13 @@ def room_list(request):
         except ValueError:
             pass
 
+    if min_rating and min_rating != '':
+        try:
+            min_rating_val = float(min_rating)
+            rooms = rooms.filter(avg_rating__gte=min_rating_val)
+        except ValueError:
+            pass
+
     if date and time:
         date_ = datetime.strptime(date, "%Y-%m-%d").date()
         start_time = datetime.strptime(time, "%H:%M").time()
@@ -47,7 +55,8 @@ def room_list(request):
     selected_building = building_id if building_id else ''
     selected_date = date if date else ''
     selected_time = time if time else ''
-    
+    selected_min_rating = min_rating if min_rating else ''
+
     context = {
         'rooms': rooms,
         'buildings': buildings,
@@ -55,6 +64,7 @@ def room_list(request):
         'selected_date': selected_date,
         'selected_time': selected_time,
         'min_capacity': min_capacity,
+        'selected_min_rating': selected_min_rating,
     }
 
     return render(request, "rooms/room_list.html", context)
