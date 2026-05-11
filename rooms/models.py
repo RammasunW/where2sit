@@ -14,6 +14,8 @@ class Room(models.Model):
     building = models.ForeignKey(Building, on_delete=models.CASCADE)
     number = models.CharField(max_length=10)
     capacity = models.IntegerField()
+    floor = models.IntegerField(null=True, blank=True)
+    room_type = models.CharField(max_length=50, default='Lecture Room')
     favorites = models.ManyToManyField(User, related_name='favorite_rooms', blank=True)
 
     def __str__(self):
@@ -98,6 +100,7 @@ class Reservation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     start_time = models.TimeField(null=True, blank=True)
     end_time = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=20, default='Pending') # Pending, Approved, Rejected, Concluded
 
     def __str__(self):
         return f"{self.name or 'Anonymous'} - {self.room} on {self.date} from {self.start_time} to {self.end_time}"

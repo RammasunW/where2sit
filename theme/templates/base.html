@@ -158,6 +158,31 @@ a.button-link:hover {
 
 <body class="bg-gray-50 font-sans antialiased">
 
+  {% if messages %}
+  <div class="fixed top-5 right-5 left-5 md:left-auto md:right-5 z-50 space-y-2">
+    {% for message in messages %}
+    <div class="alert-message transition-opacity duration-300
+                {% if message.tags == 'success' %}
+                bg-green-100 border-green-400 text-green-700
+                {% elif message.tags == 'error' %}
+                bg-red-100 border-red-400 text-red-700
+                {% else %}
+                bg-blue-100 border-blue-400 text-blue-700
+                {% endif %}
+                px-4 py-3 rounded relative shadow-lg"
+            role="alert">
+      <strong class="font-bold">
+        Notice
+      </strong>
+      <span class="block sm:inline">{{ message }}</span>
+      <button onclick="this.parentElement.remove()" class="absolute top-0 bottom-0 right-0 px-4 py-3">
+          <span class="text-xl">&times;</span>
+      </button>
+  </div>
+  {% endfor %}
+  </div>
+  {% endif %}
+
     <!-- nav bar -->
     <nav class="bg-white shadow-md sticky top-0 z50">
         <div class="container mx-auto px-4 py-3">
@@ -183,6 +208,14 @@ a.button-link:hover {
                     <a href="{% url 'rooms:reservation' %}" class="text-gray-600 hover:text-primary transition">Reservation</a>
                     <a href="{% url 'rooms:bookings' %}" class="text-gray-600 hover:text-primary transition">My Bookings</a>
                     <a href="{% url 'rooms:favorites' %}" class="text-gray-600 hover:text-primary transition">Favorites</a>
+                    {% for group in user.groups.all %}
+                      {% if group.name == "Manager" %}
+                        <a href="{% url 'rooms:manage_reservations' %}"
+                           class="text-gray-600 hover:text-primary transition">
+                           Manage
+                        </a>
+                      {% endif %}
+                    {% endfor %}
                       <p>Welcome, {{ user.username }}</p>
                       <form action="/accounts/logout/" method="post">
                         {% csrf_token %}

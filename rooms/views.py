@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.contrib import messages
+from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
@@ -117,6 +119,11 @@ def reservation(request):
 
                     if not room.is_available(date_, start_time_, end_time_):
                         error = "Room is not available at this time."
+                    
+                    # cannot have more than 5 active reservations
+                    elif Reservation.objects.filter(user=request.user, date__gte=timezone.now().date(), status__in=['Pending', 'Approved']).count() >= 5:
+                        error = "You cannot have more than 5 active reservations."
+
                     else:
                         reservation = Reservation.objects.create(
                             user=request.user,
@@ -148,7 +155,8 @@ def reservation(request):
 @login_required
 def bookings(request):
     reservations = Reservation.objects.filter(
-        user=request.user
+        user=request.user,
+        status__in=['Pending', 'Approved'],
     ).order_by('-created_at')
 
     return render(request, "rooms/bookings.html", {
@@ -231,3 +239,87 @@ def room_detail(request, room_id):
         'selected_date': selected_date,
     }
     return render(request, 'rooms/room_detail.html', context)
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@require_POST
+def room_reserve(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    date_str = request.POST.get('date')
+    start_time = request.POST.get('start_time')
+    end_time = request.POST.get('end_time')
+    if not (date_str and start_time and end_time):
+        return JsonResponse({'success': False, 'error': 'Please fill in all required fields.'})
+    try:
+        date_ = datetime.strptime(date_str, "%Y-%m-%d").date()
+        start_time_ = datetime.strptime(start_time, "%H:%M").time()
+        end_time_ = datetime.strptime(end_time, "%H:%M").time()
+        if start_time_ >= end_time_:
+            return JsonResponse({'success': False, 'error': 'End time must be after start time.'})
+        if not room.is_available(date_, start_time_, end_time_):
+            return JsonResponse({'success': False, 'error': 'Room is not available at this time.'})
+        Reservation.objects.create(
+            user=request.user,
+            room=room,
+            date=date_,
+            start_time=start_time_,
+            end_time=end_time_,
+        )
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
+def home(request):
+    rooms = Room.objects.annotate(
+        avg_rating=Avg('ratings__score')
+    ).order_by('-avg_rating')[:5]
+    
+    buildings = Building.objects.all()
+
+    context = {
+        'top_rooms': rooms,
+        'buildings': buildings,
+    }
+    return render(request, 'rooms/home.html', context)
+
+def manage_reservations(request):
+    
+    context = {
+        'reservations': Reservation.objects.filter(status='Pending').order_by('-created_at')
+    }
+    
+    return render(request, 'rooms/manage_reservations.html', context)
+
+def is_manager(user):
+    return user.groups.filter(name='Manager').exists()
+
+@login_required
+def update_reservation_status(request, reservation_id):
+    new_status = request.POST.get('status')
+    if not is_manager(request.user):
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+
+    reservation = get_object_or_404(Reservation, id=reservation_id)
+
+    if new_status not in ['Approved', 'Rejected']:
+        return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+
+    reservation.status = new_status
+    reservation.save()
+    
+    if new_status == 'Approved':
+        messages.success(
+            request,
+            f"{reservation.user.username}'s reservation for {reservation.room} on {reservation.date} has been approved."
+        )
+    else:
+        messages.error(
+            request,
+            f"{reservation.user.username}'s reservation for {reservation.room} for {reservation.date} has been rejected."
+        )
+
+    return redirect('rooms:manage_reservations')
