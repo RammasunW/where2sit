@@ -69,6 +69,8 @@ python manage.py makemigrations
 
 python manage.py migrate
 
+python manage.py import_classes (You need to save html files of Global Search results and place them under rooms/data.)
+
 (python manage.py tailwind start) #In separate Teminal/If making frontend changes
 
 python manage.py seed
