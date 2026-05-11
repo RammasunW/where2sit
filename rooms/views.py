@@ -9,12 +9,20 @@ from datetime import datetime, date
 # Create your views here.
 
 def home(request):
-    featured_rooms = Room.objects.select_related('building').all()[:6]
     buildings = Building.objects.all()
+    rooms = Room.objects.annotate(
+        avg_rating=Avg('ratings__score')
+    ).order_by('-avg_rating')[:5]
+
+    now = datetime.now()
+    date_now = now.date().isoformat(),
+    time_now = now.strftime("%H:%M"),
 
     context = {
-        'featured_rooms': featured_rooms,
         'buildings': buildings,
+        'date_now': date_now[0],
+        'time_now': time_now[0],
+        'top_rooms': rooms,
     }
     return render(request, "rooms/home.html", context)
 
@@ -223,16 +231,3 @@ def room_detail(request, room_id):
         'selected_date': selected_date,
     }
     return render(request, 'rooms/room_detail.html', context)
-
-def home(request):
-    rooms = Room.objects.annotate(
-        avg_rating=Avg('ratings__score')
-    ).order_by('-avg_rating')[:5]
-    
-    buildings = Building.objects.all()
-
-    context = {
-        'top_rooms': rooms,
-        'buildings': buildings,
-    }
-    return render(request, 'rooms/home.html', context)
