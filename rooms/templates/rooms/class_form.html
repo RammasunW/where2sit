@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+
+    <div class="bg-white shadow-md rounded-lg p-6">
+
+        <h2 class="text-2xl font-bold mb-6">
+            {% if add == 0 %}
+                Edit Class
+            {% else %}
+                Add Class
+            {% endif %}
+        </h2>
+
+        <form method="post" class="space-y-5">
+            {% csrf_token %}
+
+            <div>
+                <label class="block font-medium mb-1">
+                    Course Name
+                </label>
+                {{ form.course_name }}
+            </div>
+
+            <div>
+                <label class="block font-medium mb-1">
+                    Room
+                </label>
+                {{ form.room }}
+            </div>
+
+            <div>
+                <label class="block font-medium mb-1">
+                    Day
+                </label>
+                {{ form.day_of_week }}
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+
+                <div>
+                    <label class="block font-medium mb-1">
+                        Start Time
+                    </label>
+                    {{ form.start_time }}
+                </div>
+
+                <div>
+                    <label class="block font-medium mb-1">
+                        End Time
+                    </label>
+                    {{ form.end_time }}
+                </div>
+
+            </div>
+
+            <div class="flex gap-3 pt-4">
+
+                <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg">
+                    Save
+                </button>
+
+                <a href="{% url 'rooms:manage_classes' %}"
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
+{% endblock %}
