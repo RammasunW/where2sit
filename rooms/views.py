@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
-from .models import Room, Building, RoomRating, Reservation, RoomIssueReport
+from .models import *
 from datetime import datetime, date
 # Create your views here.
 
@@ -29,7 +29,7 @@ def home(request):
     return render(request, "rooms/home.html", context)
 
 def room_list(request):
-    rooms = Room.objects.select_related('building').annotate(avg_rating=Avg('ratings__score'))
+    rooms = Room.objects.select_related('building').annotate(avg_rating=Avg('ratings__score')).order_by('building', '-avg_rating', 'number')
     buildings = Building.objects.all()
 
     building_id = request.GET.get('building')
@@ -95,7 +95,7 @@ def register(request):
 
 # Reservation view (no login required)
 
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from django.shortcuts import redirect
@@ -104,7 +104,7 @@ from .models import Reservation
 
 @login_required
 def reservation(request):
-    rooms = Room.objects.select_related('building').all()
+    rooms = Room.objects.select_related('building').all().order_by('building', 'number')
     success = False
     error = None
     
@@ -307,6 +307,8 @@ def manage_reservations(request):
 def is_manager(user):
     return user.groups.filter(name='Manager').exists()
 
+manager_required = user_passes_test(is_manager)
+
 @login_required
 def update_reservation_status(request, reservation_id):
     new_status = request.POST.get('status')
@@ -373,3 +375,227 @@ def resolve_room_issue(request, report_id):
         report.save()
         messages.success(request, "Issue marked as resolved.")
     return redirect("rooms:manage_room_issues")
+
+
+from .forms import RoomForm, ClassScheduleForm
+
+
+@manager_required
+@login_required
+def add_room(request):
+
+    if request.method == 'POST':
+        form = RoomForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Room added.")
+            return redirect('rooms:manage_rooms')
+
+    else:
+        form = RoomForm()
+
+    return render(request, 'rooms/room_form.html', {
+        'form': form
+    })
+
+
+@login_required
+@manager_required
+def edit_room(request, room_id):
+
+    room = get_object_or_404(Room, id=room_id)
+
+    if request.method == 'POST':
+        form = RoomForm(request.POST, instance=room)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Room updated.")
+            return redirect('rooms:manage_rooms')
+
+    else:
+        form = RoomForm(instance=room)
+
+    return render(request, 'rooms/room_form.html', {
+        'form': form,
+        'room': room,
+    })
+
+
+@login_required
+@manager_required
+@require_POST
+def delete_room(request, room_id):
+
+    room = get_object_or_404(Room, id=room_id)
+
+    room.delete()
+
+    messages.success(request, "Room deleted.")
+
+    return redirect('rooms:manage_rooms')
+
+
+@login_required
+@manager_required
+def manage_rooms(request):
+
+    rooms = Room.objects.select_related('building').order_by('building', 'number')
+
+    return render(request, 'rooms/manage_rooms.html', {
+        'rooms': rooms
+    })
+
+
+@login_required
+@manager_required
+def add_class(request):
+
+    if request.method == 'POST':
+        form = ClassScheduleForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(request, "Class added.")
+
+            return redirect('rooms:manage_classes')
+
+    else:
+        form = ClassScheduleForm()
+
+    return render(request, 'rooms/class_form.html', {
+        'form': form,
+        'add': 1
+    })
+
+
+@login_required
+@manager_required
+def edit_class(request, class_id):
+
+    class_schedule = get_object_or_404(
+        ClassSchedule,
+        id=class_id
+    )
+
+    if request.method == 'POST':
+        form = ClassScheduleForm(
+            request.POST,
+            instance=class_schedule
+        )
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(request, "Class updated.")
+
+            return redirect('rooms:manage_classes')
+
+    else:
+        form = ClassScheduleForm(instance=class_schedule)
+
+    return render(request, 'rooms/class_form.html', {
+        'form': form,
+        'add': 0
+    })
+
+
+@login_required
+@manager_required
+@require_POST
+def delete_class(request, class_id):
+
+    class_schedule = get_object_or_404(
+        ClassSchedule,
+        id=class_id
+    )
+
+    class_schedule.delete()
+
+    messages.success(request, "Class deleted.")
+
+    return redirect('rooms:manage_classes')
+
+
+from django.core.paginator import Paginator
+
+
+@login_required
+@manager_required
+def manage_classes(request):
+    classes = ClassSchedule.objects.select_related(
+        'room',
+        'room__building'
+    ).all().order_by(
+        'course_name',
+        'day_of_week',
+        'start_time'
+    )
+
+    rooms = Room.objects.select_related('building').all().order_by('building', 'number')
+
+    # Filters
+    room_id = request.GET.get('room')
+    course_name = request.GET.get('course_name')
+    day_of_week = request.GET.get('day_of_week')
+    start_time = request.GET.get('start_time')
+    end_time = request.GET.get('end_time')
+
+    if room_id:
+        classes = classes.filter(room_id=room_id)
+
+    if course_name:
+        classes = classes.filter(course_name__icontains=course_name)
+    else:
+        course_name = ''
+
+    if day_of_week:
+        classes = classes.filter(day_of_week=day_of_week)
+
+    if start_time:
+        classes = classes.filter(start_time__gte=start_time)
+
+    if end_time:
+        classes = classes.filter(end_time__lte=end_time)
+
+    # Pagination
+    paginator = Paginator(classes, 30)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'classes': page_obj,
+        'rooms': rooms,
+
+        # preserve selected filters
+        'selected_room': room_id,
+        'selected_course_name': course_name,
+        'selected_day': day_of_week,
+        'selected_start_time': start_time,
+        'selected_end_time': end_time,
+    }
+
+    return render(request, 'rooms/manage_classes.html', context)
+
+
+@login_required
+@manager_required
+def manager_dashboard(request):
+
+    context = {
+        'room_count': Room.objects.count(),
+        'pending_reservations': Reservation.objects.filter(
+            status='Pending'
+        ).count(),
+        'issue_count': RoomIssueReport.objects.filter(
+            status='Open'
+        ).count(),
+    }
+
+    return render(
+        request,
+        'rooms/manager_dashboard.html',
+        context
+    )

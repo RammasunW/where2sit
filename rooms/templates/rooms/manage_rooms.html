@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold">Manage Rooms</h2>
+
+        <a href="{% url 'rooms:add_room' %}"
+           class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+            + Add Room
+        </a>
+    </div>
+
+    {% if rooms %}
+    <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+
+        <thead>
+            <tr>
+                <th class="px-6 py-3 bg-gray-200 text-left">Building</th>
+                <th class="px-6 py-3 bg-gray-200 text-left">Room</th>
+                <th class="px-6 py-3 bg-gray-200 text-left">Capacity</th>
+                <th class="px-6 py-3 bg-gray-200"></th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for room in rooms %}
+            <tr class="border-b">
+
+                <td class="px-6 py-4">
+                    {{ room.building.name }}
+                </td>
+
+                <td class="px-6 py-4 font-semibold">
+                    {{ room.number }}
+                </td>
+
+                <td class="px-6 py-4">
+                    {{ room.capacity }}
+                </td>
+
+                <td class="px-6 py-4">
+                    <div class="flex gap-2">
+                        <a href="{% url 'rooms:edit_room' room.id %}"
+                           class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                            Edit
+                        </a>
+
+                        <form method="post"
+                              action="{% url 'rooms:delete_room' room.id %}">
+                            {% csrf_token %}
+
+                            <button type="submit"
+                                    onclick="return confirm('Delete this room?')"
+                                    class="bg-red-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                                Delete
+                            </button>
+                        </form>
+                    </div>
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+
+    </table>
+
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        No rooms found.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
