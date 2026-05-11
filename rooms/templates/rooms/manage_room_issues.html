@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h2 class="text-2xl font-bold mb-6">Room issue reports</h2>
+    {% if reports %}
+    <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
+        <thead>
+            <tr>
+                <th class="px-6 py-3 bg-gray-200 text-left text-sm font-semibold text-gray-700">Submitted</th>
+                <th class="px-6 py-3 bg-gray-200 text-left text-sm font-semibold text-gray-700">Reporter</th>
+                <th class="px-6 py-3 bg-gray-200 text-left text-sm font-semibold text-gray-700">Room</th>
+                <th class="px-6 py-3 bg-gray-200 text-left text-sm font-semibold text-gray-700">Description</th>
+                <th class="px-6 py-3 bg-gray-200 text-left text-sm font-semibold text-gray-700">Status</th>
+                <th class="px-6 py-3 bg-gray-200"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reports %}
+            <tr class="border-b align-top">
+                <td class="px-6 py-4 whitespace-nowrap">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+                <td class="px-6 py-4">{{ r.user.username }}</td>
+                <td class="px-6 py-4">{{ r.room.building.name }} {{ r.room.number }}</td>
+                <td class="px-6 py-4 max-w-md">{{ r.description|linebreaksbr }}</td>
+                <td class="px-6 py-4">{{ r.status }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    {% if r.status != "Resolved" %}
+                    <form action="{% url 'rooms:resolve_room_issue' r.id %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">Mark resolved</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="text-gray-600">No issue reports yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
