@@ -1,7 +1,7 @@
 import pytest
 from django.test import Client, TestCase
 from django.contrib.auth.models import User
-from rooms.models import Building, Room, Reservation
+from rooms.models import Building, Room, Reservation, RoomRating, RoomIssueReport
 from datetime import date, time
 from django.urls import reverse
 import json
@@ -773,3 +773,379 @@ class TestReservationErrorHandling:
         # The reservation view shows your reservations on the same page
         assert 'my_reservations' in response.context
         assert len(response.context['my_reservations']) == 1
+
+# =====================================================
+# TOGGLE FAVORITE ENDPOINT INTEGRATION TESTS
+# (view + database)
+# =====================================================
+@pytest.mark.django_db
+class TestToggleFavoriteIntegration:
+    """Integration tests for toggle_favorite view interacting with the Room.favorites M2M field"""
+
+    def test_toggle_favorite_adds_to_database(self):
+        """POST to toggle_favorite adds the user to room.favorites in the database"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/100", capacity=30)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        assert not room.favorites.filter(id=user.id).exists()
+
+        response = client.post(f'/favorite/{room.id}/')
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is True
+        assert data['favorited'] is True
+
+        room.refresh_from_db()
+        assert room.favorites.filter(id=user.id).exists()
+
+    def test_toggle_favorite_removes_from_database(self):
+        """POST to toggle_favorite a second time removes the user from room.favorites"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/100", capacity=30)
+        room.favorites.add(user)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(f'/favorite/{room.id}/')
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is True
+        assert data['favorited'] is False
+
+        room.refresh_from_db()
+        assert not room.favorites.filter(id=user.id).exists()
+
+    def test_toggle_favorite_unauthenticated_does_not_modify_database(self):
+        """Unauthenticated POST to toggle_favorite is redirected and database is unchanged"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="1/100", capacity=30)
+
+        client = Client()
+        response = client.post(f'/favorite/{room.id}/')
+
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+        assert room.favorites.count() == 0
+
+
+# =====================================================
+# RATE ROOM ENDPOINT INTEGRATION TESTS
+# (view + RoomRating creation)
+# =====================================================
+@pytest.mark.django_db
+class TestRateRoomIntegration:
+    """Integration tests for rate_room view interacting with the RoomRating model"""
+
+    def test_rate_room_creates_rating_in_database(self):
+        """POST to rate_room creates a RoomRating record linked to the correct user and room"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="2/200", capacity=40)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/rate/',
+            {'score': '4', 'comment': 'Pretty good room.'}
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is True
+
+        rating = RoomRating.objects.get(user=user, room=room)
+        assert rating.score == 4
+        assert rating.comment == 'Pretty good room.'
+
+    def test_rate_room_updates_existing_rating(self):
+        """POST to rate_room a second time updates the existing RoomRating rather than creating a duplicate"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="2/200", capacity=40)
+        RoomRating.objects.create(user=user, room=room, score=2, comment='Meh.')
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/rate/',
+            {'score': '5', 'comment': 'Changed my mind, great room!'}
+        )
+        assert response.status_code == 200
+        data = json.loads(response.content)
+        assert data['success'] is True
+
+        # Only one rating should exist
+        assert RoomRating.objects.filter(user=user, room=room).count() == 1
+        rating = RoomRating.objects.get(user=user, room=room)
+        assert rating.score == 5
+        assert rating.comment == 'Changed my mind, great room!'
+
+    def test_rate_room_missing_score_returns_error(self):
+        """POST to rate_room without a score returns success=False and creates no RoomRating"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="2/200", capacity=40)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(f'/rooms/{room.id}/rate/', {'comment': 'No score provided.'})
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is False
+        assert 'error' in data
+        assert RoomRating.objects.filter(user=user, room=room).count() == 0
+
+
+# =====================================================
+# REPORT ROOM ISSUE ENDPOINT INTEGRATION TESTS
+# (view + RoomIssueReport creation)
+# =====================================================
+@pytest.mark.django_db
+class TestReportRoomIssueIntegration:
+    """Integration tests for report_room_issue view interacting with RoomIssueReport model"""
+
+    def test_report_room_issue_creates_record_in_database(self):
+        """Valid POST to report_room_issue creates a RoomIssueReport in the database"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="3/300", capacity=25)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/report-issue/',
+            {'description': 'The projector is broken and will not turn on.'}
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is True
+
+        report = RoomIssueReport.objects.get(user=user, room=room)
+        assert report.description == 'The projector is broken and will not turn on.'
+        assert report.status == RoomIssueReport.Status.OPEN
+
+    def test_report_room_issue_description_too_short_returns_error(self):
+        """POST with a description shorter than 5 characters returns an error and creates no report"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="3/300", capacity=25)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/report-issue/',
+            {'description': 'Bad'}
+        )
+        assert response.status_code == 400
+
+        data = json.loads(response.content)
+        assert data['success'] is False
+        assert 'error' in data
+        assert RoomIssueReport.objects.filter(user=user, room=room).count() == 0
+
+    def test_report_room_issue_unauthenticated_is_redirected(self):
+        """Unauthenticated POST to report_room_issue redirects to login and creates no report"""
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="3/300", capacity=25)
+
+        client = Client()
+        response = client.post(
+            f'/rooms/{room.id}/report-issue/',
+            {'description': 'The air conditioning is not working at all.'}
+        )
+
+        assert response.status_code == 302
+        assert '/accounts/login/' in response.url
+        assert RoomIssueReport.objects.count() == 0
+
+
+# =====================================================
+# ROOM RESERVE ENDPOINT INTEGRATION TESTS
+# (view + availability checking)
+# =====================================================
+@pytest.mark.django_db
+class TestRoomReserveIntegration:
+    """Integration tests for room_reserve view with Room.is_available availability checking"""
+
+    def test_room_reserve_creates_reservation_when_available(self):
+        """POST to room_reserve creates a Reservation when the room has no conflicts"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="4/400", capacity=30)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/reserve/',
+            {'date': '2027-06-01', 'start_time': '10:00', 'end_time': '12:00'}
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is True
+
+        reservation = Reservation.objects.get(user=user, room=room)
+        assert str(reservation.date) == '2027-06-01'
+
+    def test_room_reserve_fails_when_conflicting_reservation_exists(self):
+        """POST to room_reserve returns an error when an existing reservation overlaps the requested time"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="4/400", capacity=30)
+
+        # Create a blocking reservation
+        Reservation.objects.create(
+            user=user,
+            room=room,
+            date='2027-06-01',
+            start_time='09:00',
+            end_time='11:00',
+        )
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/reserve/',
+            {'date': '2027-06-01', 'start_time': '10:00', 'end_time': '12:00'}
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is False
+        assert 'not available' in data['error'].lower()
+
+        # Only the original reservation should exist
+        assert Reservation.objects.filter(room=room).count() == 1
+
+    def test_room_reserve_fails_when_end_time_before_start_time(self):
+        """POST to room_reserve with end_time <= start_time returns an error"""
+        user = User.objects.create_user(username='testuser', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="4/400", capacity=30)
+
+        client = Client()
+        client.login(username='testuser', password='pass123')
+
+        response = client.post(
+            f'/rooms/{room.id}/reserve/',
+            {'date': '2027-06-01', 'start_time': '14:00', 'end_time': '10:00'}
+        )
+        assert response.status_code == 200
+
+        data = json.loads(response.content)
+        assert data['success'] is False
+        assert Reservation.objects.filter(user=user, room=room).count() == 0
+
+
+# =====================================================
+# MANAGER RESERVATION APPROVAL WORKFLOW INTEGRATION TESTS
+# (view + Reservation status update)
+# =====================================================
+@pytest.mark.django_db
+class TestManagerReservationApprovalIntegration:
+    """Integration tests for the manager reservation approval workflow"""
+
+    def _make_manager(self, username='manager', password='pass123'):
+        from django.contrib.auth.models import Group
+        user = User.objects.create_user(username=username, password=password)
+        group, _ = Group.objects.get_or_create(name='Manager')
+        user.groups.add(group)
+        return user
+
+    def test_manager_can_approve_pending_reservation(self):
+        """A manager POST to update_reservation_status with Approved changes the reservation status"""
+        manager = self._make_manager()
+        regular_user = User.objects.create_user(username='student', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="5/500", capacity=50)
+        reservation = Reservation.objects.create(
+            user=regular_user,
+            room=room,
+            date='2027-07-10',
+            start_time='09:00',
+            end_time='11:00',
+            status='Pending',
+        )
+
+        client = Client()
+        client.login(username='manager', password='pass123')
+
+        response = client.post(
+            f'/manage_reservations/{reservation.id}/update_status/',
+            {'status': 'Approved'}
+        )
+        # Should redirect back to manage_reservations
+        assert response.status_code == 302
+
+        reservation.refresh_from_db()
+        assert reservation.status == 'Approved'
+
+    def test_manager_can_reject_pending_reservation(self):
+        """A manager POST to update_reservation_status with Rejected changes the reservation status"""
+        manager = self._make_manager()
+        regular_user = User.objects.create_user(username='student', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="5/500", capacity=50)
+        reservation = Reservation.objects.create(
+            user=regular_user,
+            room=room,
+            date='2027-07-10',
+            start_time='09:00',
+            end_time='11:00',
+            status='Pending',
+        )
+
+        client = Client()
+        client.login(username='manager', password='pass123')
+
+        response = client.post(
+            f'/manage_reservations/{reservation.id}/update_status/',
+            {'status': 'Rejected'}
+        )
+        assert response.status_code == 302
+
+        reservation.refresh_from_db()
+        assert reservation.status == 'Rejected'
+
+    def test_non_manager_cannot_update_reservation_status(self):
+        """A regular user POST to update_reservation_status receives a 403 and status is unchanged"""
+        regular_user = User.objects.create_user(username='student', password='pass123')
+        building = Building.objects.create(name="NAC")
+        room = Room.objects.create(building=building, number="5/500", capacity=50)
+        reservation = Reservation.objects.create(
+            user=regular_user,
+            room=room,
+            date='2027-07-10',
+            start_time='09:00',
+            end_time='11:00',
+            status='Pending',
+        )
+
+        client = Client()
+        client.login(username='student', password='pass123')
+
+        response = client.post(
+            f'/manage_reservations/{reservation.id}/update_status/',
+            {'status': 'Approved'}
+        )
+        assert response.status_code == 403
+
+        reservation.refresh_from_db()
+        assert reservation.status == 'Pending'
