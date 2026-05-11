@@ -30,7 +30,7 @@ def room_list(request):
     rooms = Room.objects.all()
     buildings = Building.objects.all()
 
-    building_id = request.GET.get('building') # consider using id instead of name
+    building_id = request.GET.get('building')
     date = request.GET.get('date')
     time = request.GET.get('time')
     min_capacity = request.GET.get('min_capacity')
