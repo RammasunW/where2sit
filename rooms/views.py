@@ -232,6 +232,39 @@ def room_detail(request, room_id):
     }
     return render(request, 'rooms/room_detail.html', context)
 
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@require_POST
+def room_reserve(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    date_str = request.POST.get('date')
+    start_time = request.POST.get('start_time')
+    end_time = request.POST.get('end_time')
+    if not (date_str and start_time and end_time):
+        return JsonResponse({'success': False, 'error': 'Please fill in all required fields.'})
+    try:
+        date_ = datetime.strptime(date_str, "%Y-%m-%d").date()
+        start_time_ = datetime.strptime(start_time, "%H:%M").time()
+        end_time_ = datetime.strptime(end_time, "%H:%M").time()
+        if start_time_ >= end_time_:
+            return JsonResponse({'success': False, 'error': 'End time must be after start time.'})
+        if not room.is_available(date_, start_time_, end_time_):
+            return JsonResponse({'success': False, 'error': 'Room is not available at this time.'})
+        Reservation.objects.create(
+            user=request.user,
+            room=room,
+            date=date_,
+            start_time=start_time_,
+            end_time=end_time_,
+        )
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
+
 def home(request):
     rooms = Room.objects.annotate(
         avg_rating=Avg('ratings__score')

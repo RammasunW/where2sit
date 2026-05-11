@@ -158,9 +158,57 @@
     </div>
   </div>
 
-  <!-- Rating Form -->
+
 {% if user.is_authenticated %}
 <div class="bg-white rounded-xl shadow p-6">
+  <!-- reservation -->
+  <h2 class="text-xl font-semibold mb-4 text-gray-800">Reserve this Room</h2>
+  <form method="post" action="{% url 'rooms:room_reserve' room.id %}" class="space-y-4" id="reserve-form">
+    {% csrf_token %}
+    <div>
+      <label class="block mb-2 font-medium">Date</label>
+      <input type="date" name="date" class="border rounded p-2" value="{{ selected_date|date:'Y-m-d' }}" required>
+    </div>
+    <div class="flex space-x-4">
+      <div>
+        <label class="block mb-2 font-medium">Start Time</label>
+        <input type="time" name="start_time" class="border rounded p-2" required>
+      </div>
+      <div>
+        <label class="block mb-2 font-medium">End Time</label>
+        <input type="time" name="end_time" class="border rounded p-2" required>
+      </div>
+    </div>
+    <button type="submit" class="bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-2.5 rounded-lg">Reserve</button>
+    <div id="reserve-msg" class="mt-3 text-sm font-medium"></div>
+  </form>
+  <script>
+  document.getElementById('reserve-form').onsubmit = async function(e) {
+    e.preventDefault();
+    const msg = document.getElementById('reserve-msg');
+    const form = e.target;
+    const data = new FormData(form);
+    msg.className = "mt-3 text-sm text-blue-500";
+    msg.innerText = "Submitting...";
+    const response = await fetch(form.action, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': data.get('csrfmiddlewaretoken')
+      },
+      body: data
+    });
+    const result = await response.json();
+    if (result.success) {
+      msg.className = "mt-3 text-sm text-green-600";
+      msg.innerText = "Reservation successful!";
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      msg.className = "mt-3 text-sm text-red-600";
+      msg.innerText = result.error || 'Reservation failed.';
+    }
+  };
+  </script>  
+  <!-- Rating Form -->
     <h2 class="text-xl font-semibold mb-4 text-gray-800">Rate this Room</h2>
 
     <style>
@@ -194,7 +242,6 @@
         }
     </style>
 
-    <!-- ✅ FIX: form 必须包住所有 input + button -->
     <form id="rating-form" method="post" action="{% url 'rooms:rate_room' room.id %}" class="space-y-4">
         {% csrf_token %}
 
@@ -278,7 +325,6 @@ const inputs = document.querySelectorAll('input[name="score"]');
 
 let selectedValue = 0;
 
-// 更新显示
 function updateStars(value) {
     stars.forEach(star => {
         const val = parseInt(star.dataset.value);
