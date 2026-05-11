@@ -20,7 +20,14 @@
                 <select name="building" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">All Buildings</option>
                     {% for building in buildings %}
-                    <option value="{{ building.id }}"> {{ building.name }}</option>
+                    <option
+                        value="{{ building.id }}"
+                        {% if selected_building == building.id|stringformat:"s" %}
+                            selected
+                        {% endif %}
+                    >
+                        {{ building.name }}
+                    </option>
                     {% endfor %}
                 </select>
             </div>
@@ -72,6 +79,36 @@
         <div class="card">
             <h3 class="text-xl font-bold">{{ room.building }} {{ room.number }}</h3>
             <p class="text-gray-600">Capacity: {{ room.capacity }} seats</p>
+            <div class="mt-2 flex items-center gap-2">
+
+                {% if room.average_rating %}
+
+                    <span class="text-yellow-500 font-semibold">
+                        {{ room.average_rating|floatformat:1 }}
+                    </span>
+
+                    <div class="text-yellow-400 text-sm">
+                        {% for i in "12345" %}
+                            {% if forloop.counter <= room.average_rating %}
+                                ★
+                            {% else %}
+                                ☆
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                    <span class="text-gray-500 text-sm">
+                        ({{ room.rating_count }})
+                    </span>
+
+                {% else %}
+
+                    <span class="text-gray-400 text-sm">
+                        No ratings yet
+                    </span>
+
+                {% endif %}
+            </div>
             <div class="mt-4">
                 <a href="{% url 'rooms:room_detail' room.id %}" class="text-blue-500 hover:text-blue-700">View Details →</a>
             </div>

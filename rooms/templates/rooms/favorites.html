@@ -15,35 +15,34 @@
     </p>
     </div>
 
-    {% if rooms %}
-      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {% for room in rooms %}
-          <div class="card">
-              <h3 class="text-xl font-bold">{{ room.building }} {{ room.number }}</h3>
-              <p class="text-gray-600">Capacity: {{ room.capacity }} seats</p>
-              <div class="mt-4">
-                  <a href="#" class="text-blue-500 hover:text-blue-700">View Details →</a>
-              </div>
-              <span
-                class="favorite-star"
-                data-room-id="{{ room.id }}"
-                style="cursor: pointer; font-size: 20px;"
-              >
-                {% if user in room.favorites.all %}
-                  ★
-                {% else %}
-                  ☆
-                {% endif %}
-              </span>
-          </div>
-          {% endfor %}
-      </div>
-      {% else %}
-      <div class="text-center py-12 bg-gray-50 rounded-lg">
-          <p class="text-gray-400 mt-2">No favorite rooms yet.</p>
-      </div>
-      {% endif %}
-  </div>
+  {% if rooms %}
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for room in rooms %}
+        <div class="card">
+            <h3 class="text-xl font-bold">{{ room.building }} {{ room.number }}</h3>
+            <p class="text-gray-600">Capacity: {{ room.capacity }} seats</p>
+            <div class="mt-4">
+                <a href="{% url 'rooms:room_detail' room.id %}" class="text-blue-500 hover:text-blue-700">View Details →</a>
+            </div>
+            <span
+              class="favorite-star"
+              data-room-id="{{ room.id }}"
+              style="cursor: pointer; font-size: 20px;"
+            >
+              {% if user in room.favorites.all %}
+                ★
+              {% else %}
+                ☆
+              {% endif %}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-12 bg-gray-50 rounded-lg">
+        <p class="text-gray-400 mt-2">No favorite rooms yet.</p>
+    </div>
+    {% endif %}
 </div>
 
 <form style="display:none;">
