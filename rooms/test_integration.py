@@ -136,8 +136,8 @@ class TestReservationViewIntegration:
         response = client.post('/reserve/', {
             'room': room.id,
             'date': '2026-05-15',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '12:00'
         })
         
         assert response.status_code == 200
@@ -150,8 +150,8 @@ class TestReservationViewIntegration:
         reservation = reservations.first()
         assert reservation.room == room
         assert reservation.date == date(2026, 5, 15)
-        assert reservation.time == time(10, 0)
-        assert reservation.duration == 2
+        assert reservation.start_time == time(10, 0)
+        assert reservation.end_time == time(12, 0)
     
     def test_create_multiple_reservations_same_user(self):
         """User can create multiple reservations across different rooms"""
@@ -169,22 +169,22 @@ class TestReservationViewIntegration:
         client.post('/reserve/', {
             'room': room1.id,
             'date': '2026-05-15',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '12:00'
         })
         
         client.post('/reserve/', {
             'room': room2.id,
             'date': '2026-05-16',
-            'time': '14:00',
-            'duration': 1
+            'start_time': '14:00',
+            'end_time': '15:00'
         })
         
         client.post('/reserve/', {
             'room': room3.id,
             'date': '2026-05-17',
-            'time': '09:00',
-            'duration': 3
+            'start_time': '9:00',
+            'end_time': '12:00'
         })
         
         # Verify all three exist
@@ -200,8 +200,8 @@ class TestReservationViewIntegration:
         response = client.post('/reserve/', {
             'room': 99999,  # Non-existent room
             'date': '2026-05-15',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '12:00'
         })
         
         # Should handle error and show error message
@@ -226,8 +226,8 @@ class TestReservationViewIntegration:
         client.post('/reserve/', {
             'room': room.id,
             'date': '2026-05-15',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '12:00'
         })
         
         # View bookings page
@@ -239,8 +239,8 @@ class TestReservationViewIntegration:
         assert "1/202" in content
         # Django formats dates as "May 15, 2026" by default in templates
         assert "May 15, 2026" in content or "2026-05-15" in content
-        assert "10" in content  # Time should contain 10
-        assert "2 hour" in content  # Duration
+        assert "10 a.m." in content  # start time
+        assert "noon" in content  # end time
 
 
 @pytest.mark.django_db
@@ -418,8 +418,8 @@ class TestAuthenticationFlowIntegration:
             user=user1,
             room=room,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0),
         )
         
         # User2 makes a reservation
@@ -427,8 +427,8 @@ class TestAuthenticationFlowIntegration:
             user=user2,
             room=room,
             date=date(2026, 5, 16),
-            time=time(14, 0),
-            duration=1
+            start_time=time(14, 0),
+            end_time=time(15, 0),
         )
         
         client = Client()
@@ -463,16 +463,16 @@ class TestMultiModelIntegration:
             user=user,
             room=room1,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0),
         )
         
         Reservation.objects.create(
             user=user,
             room=room2,
             date=date(2026, 5, 16),
-            time=time(14, 0),
-            duration=1
+            start_time=time(14, 0),
+            end_time=time(15, 0),
         )
         
         # Verify setup
@@ -497,8 +497,8 @@ class TestMultiModelIntegration:
             user=user,
             room=room,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0),
         )
         
         # Verify setup
@@ -552,8 +552,8 @@ class TestMultiModelIntegration:
             user=user1,
             room=room,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0),
         )
         
         # Verify setup
@@ -640,8 +640,8 @@ class TestEdgeCaseIntegration:
         response = client.post('/reserve/', {
             'room': room.id,
             'date': '2020-01-01',  # Past date
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '12:00',
         })
         
         # System currently allows this
@@ -766,8 +766,8 @@ class TestReservationErrorHandling:
         response = client.post('/reserve/', {
             'room': room.id,
             'date': '2026-05-15',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '12:00',
         })
         
         # The reservation view shows your reservations on the same page

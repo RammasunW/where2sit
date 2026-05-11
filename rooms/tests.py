@@ -1,6 +1,6 @@
 import pytest
 from django.test import Client, TestCase
-from rooms.models import Building, Room, Reservation
+from rooms.models import *
 from django.contrib.auth.models import User
 from datetime import date, time
 from django.urls import reverse
@@ -154,15 +154,15 @@ class TestReservationModel:
             user=user,
             room=room,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0)
         )
         
         assert reservation.user == user
         assert reservation.room == room
         assert reservation.date == date(2026, 5, 15)
-        assert reservation.time == time(10, 0)
-        assert reservation.duration == 2
+        assert reservation.start_time == time(10, 0)
+        assert reservation.end_time == time(12, 0)
         assert Reservation.objects.count() == 1
     
     def test_reservation_with_name(self):
@@ -176,8 +176,8 @@ class TestReservationModel:
             room=room,
             name="Study Session",
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0)
         )
         
         assert reservation.name == "Study Session"
@@ -193,11 +193,11 @@ class TestReservationModel:
             room=room,
             name="Study Session",
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0)
         )
         
-        expected = "Study Session - NAC - 1/202 on 2026-05-15 at 10:00:00"
+        expected = "Study Session - NAC - 1/202 on 2026-05-15 from 10:00:00 to 12:00:00"
         assert str(reservation) == expected
     
     def test_reservation_str_without_name(self):
@@ -210,11 +210,11 @@ class TestReservationModel:
             user=user,
             room=room,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0)
         )
         
-        expected = "Anonymous - NAC - 1/202 on 2026-05-15 at 10:00:00"
+        expected = "Anonymous - NAC - 1/202 on 2026-05-15 from 10:00:00 to 12:00:00"
         assert str(reservation) == expected
     
     def test_reservation_created_at_auto_set(self):
@@ -227,8 +227,8 @@ class TestReservationModel:
             user=user,
             room=room,
             date=date(2026, 5, 15),
-            time=time(10, 0),
-            duration=2
+            start_time=time(10, 0),
+            end_time=time(12, 0)
         )
         
         assert reservation.created_at is not None
@@ -240,8 +240,8 @@ class TestReservationModel:
         room1 = Room.objects.create(building=building, number="1/202", capacity=30)
         room2 = Room.objects.create(building=building, number="1/203", capacity=25)
         
-        Reservation.objects.create(user=user, room=room1, date=date(2026, 5, 15), time=time(10, 0), duration=2)
-        Reservation.objects.create(user=user, room=room2, date=date(2026, 5, 16), time=time(14, 0), duration=1)
+        Reservation.objects.create(user=user, room=room1, date=date(2026, 5, 15), start_time=time(10, 0), end_time=time(12, 0))
+        Reservation.objects.create(user=user, room=room2, date=date(2026, 5, 16), start_time=time(14, 0), end_time=time(15, 0))
         
         assert Reservation.objects.filter(user=user).count() == 2
     
@@ -252,8 +252,8 @@ class TestReservationModel:
         building = Building.objects.create(name="NAC")
         room = Room.objects.create(building=building, number="1/202", capacity=30)
         
-        Reservation.objects.create(user=user1, room=room, date=date(2026, 5, 15), time=time(10, 0), duration=2)
-        Reservation.objects.create(user=user2, room=room, date=date(2026, 5, 15), time=time(14, 0), duration=1)
+        Reservation.objects.create(user=user1, room=room, date=date(2026, 5, 15), start_time=time(10, 0), end_time=time(12, 0))
+        Reservation.objects.create(user=user2, room=room, date=date(2026, 5, 15), start_time=time(14, 0), end_time=time(15, 0))
         
         assert Reservation.objects.filter(room=room).count() == 2
     
@@ -263,7 +263,7 @@ class TestReservationModel:
         building = Building.objects.create(name="NAC")
         room = Room.objects.create(building=building, number="1/202", capacity=30)
         
-        Reservation.objects.create(user=user, room=room, date=date(2026, 5, 15), time=time(10, 0), duration=2)
+        Reservation.objects.create(user=user, room=room, date=date(2026, 5, 15), start_time=time(10, 0), end_time=time(12, 0))
         assert Reservation.objects.count() == 1
         
         user.delete()
@@ -275,13 +275,15 @@ class TestReservationModel:
         building = Building.objects.create(name="NAC")
         room = Room.objects.create(building=building, number="1/202", capacity=30)
         
-        Reservation.objects.create(user=user, room=room, date=date(2026, 5, 15), time=time(10, 0), duration=2)
+        Reservation.objects.create(user=user, room=room, date=date(2026, 5, 15), start_time=time(10, 0), end_time=time(12, 0))
         assert Reservation.objects.count() == 1
         
         room.delete()
         assert Reservation.objects.count() == 0
     
-    def test_reservation_duration_edge_cases(self):
+
+    # obsolete: duration is no longer an attribute
+    '''def test_reservation_duration_edge_cases(self):
         """Reservation can have various duration values"""
         user = User.objects.create_user(username="testuser", password="pass123")
         building = Building.objects.create(name="NAC")
@@ -293,7 +295,7 @@ class TestReservationModel:
         
         # Duration of 8 hours
         r2 = Reservation.objects.create(user=user, room=room, date=date(2026, 5, 16), time=time(9, 0), duration=8)
-        assert r2.duration == 8
+        assert r2.duration == 8'''
 
 
 # =====================================================
@@ -607,8 +609,8 @@ class RoomFeatureTests(TestCase):
         response = self.client.post('/reserve/', {
             'room': self.room.id,
             'date': '2026-01-01',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '14:00'
         })
         self.assertEqual(response.status_code, 200)
         self.assertTrue(Reservation.objects.filter(user=self.user).exists())
@@ -629,8 +631,8 @@ class RoomFeatureTests(TestCase):
         response = self.client.post('/reserve/', {
             'room': self.room.id,
             'date': '2026-01-01',
-            'time': '10:00',
-            'duration': 2
+            'start_time': '10:00',
+            'end_time': '14:00'
         })
         self.assertEqual(response.status_code, 302)  # Redirect to login
     
@@ -639,8 +641,8 @@ class RoomFeatureTests(TestCase):
             user=self.user,
             room=self.room,
             date='2026-01-01',
-            time='10:00',
-            duration=2
+            start_time=time(10,0),
+            end_time=time(14,0)
         )
         self.client.login(username='testuser', password='password123')
         response = self.client.get('/bookings/')

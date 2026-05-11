@@ -1,19 +1,30 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.contrib import messages
+from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Avg
 from .models import Room, Building, RoomRating, Reservation
+from datetime import datetime, date
 # Create your views here.
 
 def home(request):
-    featured_rooms = Room.objects.select_related('building').all()[:6]
     buildings = Building.objects.all()
+    rooms = Room.objects.annotate(
+        avg_rating=Avg('ratings__score')
+    ).order_by('-avg_rating')[:5]
+
+    now = datetime.now()
+    date_now = now.date().isoformat(),
+    time_now = now.strftime("%H:%M"),
 
     context = {
-        'featured_rooms': featured_rooms,
         'buildings': buildings,
+        'date_now': date_now[0],
+        'time_now': time_now[0],
+        'top_rooms': rooms,
     }
     return render(request, "rooms/home.html", context)
 
@@ -21,7 +32,7 @@ def room_list(request):
     rooms = Room.objects.all()
     buildings = Building.objects.all()
 
-    building_id = request.GET.get('building') # consider using id instead of name
+    building_id = request.GET.get('building')
     date = request.GET.get('date')
     time = request.GET.get('time')
     min_capacity = request.GET.get('min_capacity')
@@ -35,6 +46,11 @@ def room_list(request):
             rooms = rooms.filter(capacity__gte=min_capacity)
         except ValueError:
             pass
+
+    if date and time:
+        date_ = datetime.strptime(date, "%Y-%m-%d").date()
+        start_time = datetime.strptime(time, "%H:%M").time()
+        rooms = [room for room in rooms if room.is_available(date_, start_time, start_time)]
 
     selected_building = building_id if building_id else ''
     selected_date = date if date else ''
@@ -84,28 +100,43 @@ def reservation(request):
     if request.method == 'POST':
         room_id = request.POST.get('room')
         date = request.POST.get('date')
-        time_ = request.POST.get('time')
-        duration = request.POST.get('duration')
-        
-        if not (room_id and date and time_ and duration):
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+
+        if not (room_id and date and start_time and end_time):
             error = 'Please fill in all required fields.'
         else:
-            try:
-                # Validate room exists
-                room = Room.objects.get(id=room_id)
-                
-                reservation = Reservation.objects.create(
-                    user=request.user,
-                    room=room,  # Use the room object instead of room_id
-                    date=date,
-                    time=time_,
-                    duration=duration,
-                )
-                success = True
-            except Room.DoesNotExist:
-                error = 'The selected room does not exist.'
-            except Exception as e:
-                error = f"Reservation failed: {e}"
+            date_ = datetime.strptime(date, "%Y-%m-%d").date()
+            start_time_ = datetime.strptime(start_time, "%H:%M").time()
+            end_time_ = datetime.strptime(end_time, "%H:%M").time()
+
+            if start_time_ > end_time_:
+                error = 'Please fill in the correct time.'
+            else:
+                try:
+                    # Validate room exists
+                    room = Room.objects.get(id=room_id)
+
+                    if not room.is_available(date_, start_time_, end_time_):
+                        error = "Room is not available at this time."
+                    
+                    # cannot have more than 5 active reservations
+                    elif Reservation.objects.filter(user=request.user, date__gte=timezone.now().date(), status__in=['Pending', 'Approved']).count() >= 5:
+                        error = "You cannot have more than 5 active reservations."
+
+                    else:
+                        reservation = Reservation.objects.create(
+                            user=request.user,
+                            room=room,  # Use the room object instead of room_id
+                            date=date,
+                            start_time=start_time,
+                            end_time=end_time,
+                        )
+                        success = True
+                except Room.DoesNotExist:
+                    error = 'The selected room does not exist.'
+                except Exception as e:
+                    error = f"Reservation failed: {e}"
     
     my_reservations = Reservation.objects.filter(
         user=request.user
@@ -124,7 +155,8 @@ def reservation(request):
 @login_required
 def bookings(request):
     reservations = Reservation.objects.filter(
-        user=request.user
+        user=request.user,
+        status__in=['Pending', 'Approved'],
     ).order_by('-created_at')
 
     return render(request, "rooms/bookings.html", {
@@ -188,13 +220,58 @@ def rate_room(request, room_id):
 def room_detail(request, room_id):
     room = get_object_or_404(Room, id=room_id)
     ratings = room.ratings.select_related('user').order_by('-created_at')
+    date_str = request.GET.get('date')
+
+    # Show room availability by date, default to today
+    if date_str:
+        selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    else:
+        selected_date = date.today()
+
+    schedule = room.get_schedule_for_day(selected_date)
+
     context = {
         'room': room,
         'average_rating': room.average_rating,
         'rating_count': room.rating_count,
         'ratings': ratings,
+        'schedule': schedule,
+        'selected_date': selected_date,
     }
     return render(request, 'rooms/room_detail.html', context)
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+
+@login_required
+@require_POST
+def room_reserve(request, room_id):
+    room = get_object_or_404(Room, id=room_id)
+    date_str = request.POST.get('date')
+    start_time = request.POST.get('start_time')
+    end_time = request.POST.get('end_time')
+    if not (date_str and start_time and end_time):
+        return JsonResponse({'success': False, 'error': 'Please fill in all required fields.'})
+    try:
+        date_ = datetime.strptime(date_str, "%Y-%m-%d").date()
+        start_time_ = datetime.strptime(start_time, "%H:%M").time()
+        end_time_ = datetime.strptime(end_time, "%H:%M").time()
+        if start_time_ >= end_time_:
+            return JsonResponse({'success': False, 'error': 'End time must be after start time.'})
+        if not room.is_available(date_, start_time_, end_time_):
+            return JsonResponse({'success': False, 'error': 'Room is not available at this time.'})
+        Reservation.objects.create(
+            user=request.user,
+            room=room,
+            date=date_,
+            start_time=start_time_,
+            end_time=end_time_,
+        )
+        return JsonResponse({'success': True})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})
 
 def home(request):
     rooms = Room.objects.annotate(
@@ -208,3 +285,41 @@ def home(request):
         'buildings': buildings,
     }
     return render(request, 'rooms/home.html', context)
+
+def manage_reservations(request):
+    
+    context = {
+        'reservations': Reservation.objects.filter(status='Pending').order_by('-created_at')
+    }
+    
+    return render(request, 'rooms/manage_reservations.html', context)
+
+def is_manager(user):
+    return user.groups.filter(name='Manager').exists()
+
+@login_required
+def update_reservation_status(request, reservation_id):
+    new_status = request.POST.get('status')
+    if not is_manager(request.user):
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+
+    reservation = get_object_or_404(Reservation, id=reservation_id)
+
+    if new_status not in ['Approved', 'Rejected']:
+        return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
+
+    reservation.status = new_status
+    reservation.save()
+    
+    if new_status == 'Approved':
+        messages.success(
+            request,
+            f"{reservation.user.username}'s reservation for {reservation.room} on {reservation.date} has been approved."
+        )
+    else:
+        messages.error(
+            request,
+            f"{reservation.user.username}'s reservation for {reservation.room} for {reservation.date} has been rejected."
+        )
+
+    return redirect('rooms:manage_reservations')
