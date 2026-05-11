@@ -5,7 +5,7 @@
 <!-- Hero Section -->
 <section class="bg-linear-to-br from-primary to-purple-600 text-white">
     <div class="container mx-auto px-4 py-20">
-        <div class="max-w-3xl mx-auto text-center">
+        <div class="max-w-4xl mx-auto text-center">
             <h1 class="text-5xl md:text-6xl font-bold mb-6">
                 Find Your Perfect Study Spot
             </h1>
@@ -13,20 +13,23 @@
                 Don't know where to go when you have an online class? The quiet floor is too loud? 
                 Too shy to sit next to strangers? We got you!
             </p>
+            <p class="text-3xl mb-4 text-blue-50">
+                Where are you now?
+            </p>
             
             <!-- Search Form -->
             <div class="bg-white rounded-2xl shadow-xl p-4">
                 <form method="get" action="{% url 'rooms:room_list' %}" class="flex flex-col md:flex-row gap-3">
                     <select name="building" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
-                        <option value="">All Buildings</option>
+                        <option value="">Select Building</option>
                         {% for building in buildings %}
                             <option value="{{ building.id }}">{{ building.name }}</option> <!--Check if name is right...-->
                         {% endfor %}
                     </select>
-                    <input type="date" name="date" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
-                    <input type="time" name="time" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <input type="date" name="date" value="{{ date_now }}" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <input type="time" name="time" value="{{ time_now }}" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary">
                     <button type="submit" class="btn-primary px-8 py-3 text-lg">
-                        Find Rooms →
+                        Find Empty Rooms Now →
                     </button>
                 </form>
             </div>
@@ -66,8 +69,8 @@
     </div>
 </section>
 
-<!-- Featured Rooms Section -->
-{% if featured_rooms %}
+<!-- Top Rooms Section -->
+{% if top_rooms %}
 <section class="py-16 bg-gray-50">
     <div class="container mx-auto px-4">
         <div class="text-center mb-12">
@@ -89,8 +92,8 @@
                                     <ul>
                                         {% for room in top_rooms %}
                                             <li class="mb-2">
-                                                <a href="{% url 'room_detail' room.id %}" class="text-primary font-semibold">{{ room.name }}</a>
-                                                - {{ room.avg_rating|default:"No rating" }}/5
+                                                <a href="{% url 'rooms:room_detail' room.id %}" class="text-primary font-semibold">{{room.building.name}} {{ room.number }}</a>
+                                                - {{ room.avg_rating|floatformat:1|default:"No rating" }}/5
                                                 <span>
                                                     {% for i in "12345"|make_list %}
                                                     {% if forloop.counter <= room.avg_rating|default:0 %}
@@ -106,7 +109,7 @@
                                     </ul>
                                 </div>
                     <div>
-                        <h3 class="text-xl font-bold text-gray-800">{{ room.building }} {{ room.number }}</h3>
+                        <h3 class="text-xl font-bold text-gray-800">{{ room.building.name }} {{ room.number }}</h3>
                         <p class="text-gray-500 text-sm">Capacity: {{ room.capacity }} people</p>
                     </div>
                     <span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Available</span>
