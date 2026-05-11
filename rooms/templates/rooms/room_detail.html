@@ -108,7 +108,7 @@
     {% if average_rating %}
       <div class="flex items-center space-x-3">
         <span class="text-2xl font-bold text-yellow-500">
-          {{ average_rating }} / 5
+          {{ average_rating|floatformat:1 }} / 5
         </span>
 
         <div class="text-yellow-400 text-xl">
