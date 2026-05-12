@@ -1,0 +1,78 @@
+# After tests pass on main: build EB bundle, upload artifact, deploy to Elastic Beanstalk.
+# Replace REPLACE_WITH_DEPLOY_S3_BUCKET with your deploy-artifacts S3 bucket (not the Terraform state bucket).
+# Add repo secrets: ACCESS_KEY_ID and SECRET_ACCESS_KEY (github_action IAM user).
+
+name: deploy
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI - Run Tests"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # workflow_run: only run when the test workflow succeeded
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    env:
+      AWS_REGION: us-east-2
+      # TODO: create an S3 bucket for EB source bundles and set its name here (or use a repo variable).
+      DEPLOY_BUCKET: REPLACE_WITH_DEPLOY_S3_BUCKET
+      EB_APPLICATION: where2sit
+      EB_ENVIRONMENT: where2sit-environment
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          # workflow_run: deploy the same commit the test run used (not necessarily branch tip).
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create deployment zip
+        run: |
+          zip -r "where2sit-deploy-${{ github.sha }}.zip" \
+            manage.py requirements.txt \
+            wheretosit rooms theme .ebextensions
+
+      - name: Upload application artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: where2sit_application_artifact
+          path: where2sit-deploy-${{ github.sha }}.zip
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload bundle to S3
+        run: aws s3 cp "where2sit-deploy-${{ github.sha }}.zip" "s3://${{ env.DEPLOY_BUCKET }}/"
+
+      - name: Create Elastic Beanstalk application version
+        run: |
+          aws elasticbeanstalk create-application-version \
+            --application-name "${{ env.EB_APPLICATION }}" \
+            --source-bundle "S3Bucket=${{ env.DEPLOY_BUCKET }},S3Key=where2sit-deploy-${{ github.sha }}.zip" \
+            --version-label "ver-${{ github.sha }}" \
+            --description "deploy-${{ github.sha }}"
+
+      - name: Deploy to Elastic Beanstalk
+        run: |
+          aws elasticbeanstalk update-environment \
+            --environment-name "${{ env.EB_ENVIRONMENT }}" \
+            --version-label "ver-${{ github.sha }}"
