@@ -19,4 +19,8 @@ node modules
 
 # .idea folder
 .idea
-/terraform
+
+# Terraform local state (commit *.tf, not state)
+.terraform/
+*.tfstate
+*.tfstate.*
